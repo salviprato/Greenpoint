@@ -138,8 +138,7 @@
             <div style="text-align: left; display: flex; flex-direction: column; gap: 15px;">
                 <div>
                     <label style="font-size: 0.9em; color: #d1d5db; font-weight: bold;">1. Elige tu cancha:</label>
-                    <select id="select-cancha-modal" class="input-form" style="margin-top: 5px;">
-                        </select>
+                    <select id="select-cancha-modal" class="input-form" style="margin-top: 5px;"></select>
                 </div>
                 <div>
                     <label style="font-size: 0.9em; color: #d1d5db; font-weight: bold;">2. Nombre y Apellido:</label>
@@ -156,8 +155,8 @@
         <div class="modal-content">
             <h3 style="margin: 0; margin-bottom: 10px; border-bottom: 1px solid #44505d; padding-bottom: 10px;">⚙️ Configuración</h3>
             <div style="text-align: left; display: flex; flex-direction: column; gap: 10px;">
-                <div><label style="font-size: 0.9em; color: #d1d5db;">Abre a las:</label><input type="time" id="input-apertura" class="input-form"></div>
-                <div><label style="font-size: 0.9em; color: #d1d5db;">Cierra a las:</label><input type="time" id="input-cierre" class="input-form"></div>
+                <div><label style="font-size: 0.9em; color: #d1d5db;">Primer Turno:</label><input type="time" id="input-primer-turno" class="input-form"></div>
+                <div><label style="font-size: 0.9em; color: #d1d5db;">Último Turno:</label><input type="time" id="input-ultimo-turno" class="input-form"></div>
                 <div><label style="font-size: 0.9em; color: #d1d5db;">Precio Turno ($):</label><input type="number" id="input-precio" step="500" class="input-form"></div>
                 <div><label style="font-size: 0.9em; color: #d1d5db;">Cantidad de Canchas:</label><input type="number" id="input-canchas" min="1" max="20" class="input-form"></div>
             </div>
@@ -238,13 +237,13 @@
         }
         horariosBase.reverse(); 
 
-        let horaApertura = "08:00"; 
-        let horaCierre = "23:30";   
+        let primerTurno = "08:00"; 
+        let ultimoTurno = "21:30";   
         let precioGlobal = "15000"; 
         let cantidadCanchasGlobal = 1; 
         let reservasGlobales = [];
         let reservaSeleccionadaId = null; 
-        let reservaEnProcesoHora = null; // Guarda la hora que el jugador acaba de clickear
+        let reservaEnProcesoHora = null;
 
         // --- MATEMÁTICAS DE TIEMPO ---
         window.aMinutos = function(horaStr) { let [h, m] = horaStr.split(':').map(Number); return (h * 60) + m; }
@@ -267,17 +266,14 @@
         window.abrirModal = function(id) { reservaSeleccionadaId = id; document.getElementById('modal-acciones').style.display = 'flex'; }
         window.cerrarModalAcciones = function() { reservaSeleccionadaId = null; document.getElementById('modal-acciones').style.display = 'none'; }
 
-        // --- NUEVO: FUNCIONES DEL MODAL DE RESERVA JUGADOR ---
+        // --- MODAL RESERVA JUGADOR ---
         window.abrirModalReservaJugador = function(hora) {
             reservaEnProcesoHora = hora;
-            
-            // Formatear fecha bonita
             const partes = fechaSeleccionada.split('-');
             const f = new Date(partes[0], partes[1] - 1, partes[2]);
             document.getElementById('reserva-fecha-display').innerText = `${f.getDate()}/${f.getMonth() + 1}/${f.getFullYear()}`;
             document.getElementById('reserva-hora-display').innerText = `${hora} hs`;
 
-            // Calcular canchas libres EXACTAMENTE para esta hora (y las siguientes 1.5hs)
             let bloque1 = hora;
             let bloque2 = window.sumarMinutos(hora, 30);
             let bloque3 = window.sumarMinutos(hora, 60);
@@ -286,70 +282,50 @@
             let canchasOcupadas = new Set();
             
             reservasDelDia.forEach(r => {
-                let rB1 = r.hora;
-                let rB2 = window.sumarMinutos(r.hora, 30);
-                let rB3 = window.sumarMinutos(r.hora, 60);
-                
-                // Si la reserva choca con nuestros 3 bloques, esa cancha está ocupada
-                if (rB1 === bloque1 || rB1 === bloque2 || rB1 === bloque3 ||
-                    rB2 === bloque1 || rB2 === bloque2 || rB2 === bloque3 ||
-                    rB3 === bloque1 || rB3 === bloque2 || rB3 === bloque3) {
+                let rB1 = r.hora, rB2 = window.sumarMinutos(r.hora, 30), rB3 = window.sumarMinutos(r.hora, 60);
+                if (rB1 === bloque1 || rB1 === bloque2 || rB1 === bloque3 || rB2 === bloque1 || rB2 === bloque2 || rB2 === bloque3 || rB3 === bloque1 || rB3 === bloque2 || rB3 === bloque3) {
                     canchasOcupadas.add(parseInt(r.cancha || "1"));
                 }
             });
 
-            // Llenar el Dropdown solo con las libres
             const selectCancha = document.getElementById('select-cancha-modal');
             selectCancha.innerHTML = '';
             for(let c = 1; c <= cantidadCanchasGlobal; c++) {
-                if(!canchasOcupadas.has(c)) {
-                    selectCancha.innerHTML += `<option value="${c}" style="color: black;">Cancha ${c}</option>`;
-                }
+                if(!canchasOcupadas.has(c)) { selectCancha.innerHTML += `<option value="${c}" style="color: black;">Cancha ${c}</option>`; }
             }
 
-            document.getElementById('input-nombre-jugador').value = ""; // Limpiar input
+            document.getElementById('input-nombre-jugador').value = ""; 
             document.getElementById('modal-reserva-jugador').style.display = 'flex';
         }
 
-        window.cerrarModalReservaJugador = function() {
-            reservaEnProcesoHora = null;
-            document.getElementById('modal-reserva-jugador').style.display = 'none';
-        }
+        window.cerrarModalReservaJugador = function() { reservaEnProcesoHora = null; document.getElementById('modal-reserva-jugador').style.display = 'none'; }
 
         window.confirmarReservaJugador = async function() {
             const nombre = document.getElementById('input-nombre-jugador').value;
             const cancha = document.getElementById('select-cancha-modal').value;
 
-            if (!nombre || nombre.trim() === "") {
-                alert("Por favor, ingresa tu Nombre y Apellido.");
-                return;
-            }
+            if (!nombre || nombre.trim() === "") { alert("Por favor, ingresa tu Nombre y Apellido."); return; }
 
             try {
                 await addDoc(collection(db, "reservas"), { 
-                    fecha: fechaSeleccionada, 
-                    hora: reservaEnProcesoHora, 
-                    cancha: cancha, 
-                    jugador: nombre, 
-                    fechaRegistro: new Date(), 
-                    asistencia: false, 
-                    pagado: false      
+                    fecha: fechaSeleccionada, hora: reservaEnProcesoHora, cancha: cancha, jugador: nombre, 
+                    fechaRegistro: new Date(), asistencia: false, pagado: false      
                 });
                 alert("¡Reserva guardada con éxito!");
                 window.cerrarModalReservaJugador();
             } catch (error) { alert("Hubo un error de conexión."); }
         }
-        // -----------------------------------------------------
 
+        // --- CONFIGURACIÓN Y ACCIONES ---
         window.guardarConfiguracion = async function() {
-            const apertura = document.getElementById('input-apertura').value;
-            const cierre = document.getElementById('input-cierre').value;
+            const primero = document.getElementById('input-primer-turno').value;
+            const ultimo = document.getElementById('input-ultimo-turno').value;
             const precio = document.getElementById('input-precio').value;
             const canchas = document.getElementById('input-canchas').value; 
             
-            if(apertura && cierre && precio && canchas) {
+            if(primero && ultimo && precio && canchas) {
                 try { 
-                    await setDoc(doc(db, "configuracion", "club"), { horaApertura: apertura, horaCierre: cierre, precioTurno: precio, canchas: canchas }); 
+                    await setDoc(doc(db, "configuracion", "club"), { primerTurno: primero, ultimoTurno: ultimo, precioTurno: precio, canchas: canchas }); 
                     window.cerrarModalConfig();
                     alert("¡Configuración guardada!"); 
                 } catch (error) { alert("Error al guardar."); }
@@ -363,13 +339,14 @@
 
         onSnapshot(doc(db, "configuracion", "club"), (documento) => {
             if (documento.exists()) {
-                horaApertura = documento.data().horaApertura || "08:00";
-                horaCierre = documento.data().horaCierre || "23:30";
+                // Si alguien tenía guardada la vieja configuración de "horaApertura", la usamos como fallback temporal
+                primerTurno = documento.data().primerTurno || documento.data().horaApertura || "08:00";
+                ultimoTurno = documento.data().ultimoTurno || documento.data().horaCierre || "21:30";
                 precioGlobal = documento.data().precioTurno || "15000";
                 cantidadCanchasGlobal = parseInt(documento.data().canchas) || 1; 
                 
-                document.getElementById('input-apertura').value = horaApertura;
-                document.getElementById('input-cierre').value = horaCierre;
+                document.getElementById('input-primer-turno').value = primerTurno;
+                document.getElementById('input-ultimo-turno').value = ultimoTurno;
                 document.getElementById('input-precio').value = precioGlobal;
                 document.getElementById('input-canchas').value = cantidadCanchasGlobal;
             }
@@ -382,51 +359,40 @@
             renderizarPantallas(); 
         });
 
+        // --- RENDERIZADO PANTALLAS ---
         window.renderizarPantallas = function() {
-            // 1. RENDERIZAR VISTA JUGADOR (Nueva Lógica)
+            // 1. RENDERIZAR VISTA JUGADOR
             const contenedorHorarios = document.getElementById('lista-horarios');
             contenedorHorarios.innerHTML = '';
             
             const reservasDelDia = reservasGlobales.filter(r => (r.fecha || fechasValidas[0]) === fechaSeleccionada);
-            const horariosFiltrados = horariosBase.filter(h => h >= horaApertura && h <= horaCierre);
+            
+            // Filtro con el nuevo sistema de Primer y Último turno
+            const horariosFiltrados = horariosBase.filter(h => h >= primerTurno && h <= ultimoTurno);
 
             horariosFiltrados.forEach(hora => {
-                let bloque1 = hora;
-                let bloque2 = window.sumarMinutos(hora, 30);
-                let bloque3 = window.sumarMinutos(hora, 60);
+                let bloque1 = hora, bloque2 = window.sumarMinutos(hora, 30), bloque3 = window.sumarMinutos(hora, 60);
                 
-                // Descubrimos cuántas canchas están chocando con este horario
                 let canchasOcupadas = new Set();
                 reservasDelDia.forEach(r => {
-                    let rB1 = r.hora;
-                    let rB2 = window.sumarMinutos(r.hora, 30);
-                    let rB3 = window.sumarMinutos(r.hora, 60);
-                    
-                    if (rB1 === bloque1 || rB1 === bloque2 || rB1 === bloque3 ||
-                        rB2 === bloque1 || rB2 === bloque2 || rB2 === bloque3 ||
-                        rB3 === bloque1 || rB3 === bloque2 || rB3 === bloque3) {
+                    let rB1 = r.hora, rB2 = window.sumarMinutos(r.hora, 30), rB3 = window.sumarMinutos(r.hora, 60);
+                    if (rB1 === bloque1 || rB1 === bloque2 || rB1 === bloque3 || rB2 === bloque1 || rB2 === bloque2 || rB2 === bloque3 || rB3 === bloque1 || rB3 === bloque2 || rB3 === bloque3) {
                         canchasOcupadas.add(parseInt(r.cancha || "1"));
                     }
                 });
 
                 let canchasLibres = cantidadCanchasGlobal - canchasOcupadas.size;
-                let minInicio = window.aMinutos(hora);
-                let minCierre = window.aMinutos(horaCierre);
-                if (minCierre === 0) minCierre = 1440; 
 
-                // Solo mostramos el horario si hay al menos 1 cancha libre
-                if (canchasLibres > 0 && (minInicio + 90) <= minCierre) {
+                if (canchasLibres > 0) {
                     const div = document.createElement('div'); div.className = 'turno-item';
                     div.onclick = () => window.abrirModalReservaJugador(hora);
-                    
                     let textoCanchas = canchasLibres === 1 ? "1 libre" : `${canchasLibres} libres`;
-                    
                     div.innerHTML = `<span class="punto-verde"></span><span class="hora">${hora} hs | </span><span class="texto-disponible">Turno 1.5 hs</span><span class="texto-canchas-disp">${textoCanchas}</span>`;
                     contenedorHorarios.appendChild(div);
                 }
             });
 
-            // 2. RENDERIZAR VISTA CLUB (Tabla Vertical)
+            // 2. RENDERIZAR VISTA CLUB
             const contenedorClub = document.getElementById('lista-reservas-club');
             contenedorClub.innerHTML = '';
 
@@ -435,13 +401,13 @@
                 return;
             }
 
-            let minActual = window.aMinutos(horaApertura);
-            let minFin = window.aMinutos(horaCierre);
+            let minActual = window.aMinutos(primerTurno);
+            // La grilla visual suma 90 minutos al último turno para que se vea completo el partido
+            let minFin = window.aMinutos(ultimoTurno) + 90; 
             if (minFin <= minActual) minFin += 1440; 
 
             let htmlGrilla = `<div class="contenedor-grilla">`;
             
-            // Columna de Horas
             htmlGrilla += `<div style="width: 55px; flex-shrink: 0; border-right: 1px solid #2c3540; background: #1e252d;">`;
             htmlGrilla += `<div style="height: 40px; border-bottom: 1px solid #2c3540; background: #242c36;"></div>`; 
             for (let m = minActual; m < minFin; m += 30) {
@@ -453,7 +419,6 @@
             }
             htmlGrilla += `</div>`;
 
-            // Columnas de Canchas
             for(let c = 1; c <= cantidadCanchasGlobal; c++) {
                 htmlGrilla += `<div style="flex: 1; min-width: 140px; border-right: 1px solid #2c3540; position: relative;">`;
                 htmlGrilla += `<div style="height: 40px; border-bottom: 1px solid #2c3540; text-align: center; line-height: 40px; font-weight: bold; background: #242c36; font-size: 0.9em;">Cancha ${c}</div>`;
