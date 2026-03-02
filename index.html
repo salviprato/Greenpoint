@@ -77,7 +77,6 @@
         .tarjeta-reserva-grilla:hover { filter: brightness(1.1); }
         .tarjeta-reserva-grilla.asistio { background-color: #3b82f6; color: #ffffff; border-left: 5px solid #1d4ed8; }
         
-        /* NUEVO EFECTO: Celdas vacías clickeables */
         .celda-vacia-hover { transition: background-color 0.1s; }
         .celda-vacia-hover:hover { background-color: rgba(59, 130, 246, 0.15); }
 
@@ -89,7 +88,7 @@
             background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 1000;
         }
         .modal-content {
-            background: #1e252d; padding: 25px; border-radius: 12px; width: 90%; max-width: 340px;
+            background: #1e252d; padding: 25px; border-radius: 12px; width: 90%; max-width: 360px;
             display: flex; flex-direction: column; gap: 12px; border: 1px solid #44505d; text-align: center;
         }
         .input-form {
@@ -104,6 +103,10 @@
         .btn-eliminar { background-color: #ef4444; } .btn-eliminar:hover { background-color: #dc2626; }
         .btn-cerrar { background-color: #4b5563; margin-top: 10px;}
         .btn-gray-two-col { background-color: #4b5563; flex: 1; } .btn-gray-two-col:hover { background-color: #444c56; }
+
+        /* Estilo para las barras de scroll internas en métricas */
+        .scroll-interno::-webkit-scrollbar { width: 6px; }
+        .scroll-interno::-webkit-scrollbar-thumb { background: #44505d; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -126,7 +129,10 @@
     <div id="pantalla-club" class="vista-club">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h2 style="margin: 0;">Panel de Control</h2>
-            <button onclick="window.abrirModalConfig()" style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: #9ca3af; transition: 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#9ca3af'" title="Configuración del Club">⚙️</button>
+            <div style="display: flex; gap: 15px;">
+                <button onclick="window.abrirModalMetricas()" style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: #9ca3af; transition: 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#9ca3af'" title="Métricas del Club">📊</button>
+                <button onclick="window.abrirModalConfig()" style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: #9ca3af; transition: 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#9ca3af'" title="Configuración del Club">⚙️</button>
+            </div>
         </div>
         <div id="calendario-club" class="calendario-strip"></div>
         <div id="lista-reservas-club"></div>
@@ -176,6 +182,17 @@
             </div>
             <button class="btn-modal btn-guardar" style="margin-top: 20px;" onclick="window.guardarConfiguracion()">Guardar Todo</button>
             <button class="btn-modal btn-cerrar" style="margin-top: 0;" onclick="window.cerrarModalConfig()">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="modal-metricas" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin: 0; margin-bottom: 15px; border-bottom: 1px solid #44505d; padding-bottom: 10px;">📊 Métricas de Reservas</h3>
+            
+            <div id="contenido-metricas" class="scroll-interno" style="text-align: left; max-height: 350px; overflow-y: auto; padding-right: 5px;">
+                </div>
+
+            <button class="btn-modal btn-cerrar" style="margin-top: 15px;" onclick="window.cerrarModalMetricas()">Cerrar</button>
         </div>
     </div>
 
@@ -304,10 +321,94 @@
         }
         window.cerrarModalAcciones = function() { reservaSeleccionadaId = null; document.getElementById('modal-acciones').style.display = 'none'; }
 
+        // --- NUEVO: LÓGICA DE MÉTRICAS ---
+        window.abrirModalMetricas = function() {
+            calcularMetricas();
+            document.getElementById('modal-metricas').style.display = 'flex';
+        }
+        window.cerrarModalMetricas = function() {
+            document.getElementById('modal-metricas').style.display = 'none';
+        }
+
+        function calcularMetricas() {
+            const metricas = {}; 
+            const mesesNombres = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+            // Agrupar reservas
+            reservasGlobales.forEach(r => {
+                if(!r.fecha) return;
+                const partes = r.fecha.split('-'); 
+                const anio = partes[0];
+                const mesNum = parseInt(partes[1], 10);
+                const dia = parseInt(partes[2], 10);
+
+                const mesTexto = `${mesesNombres[mesNum - 1]} ${anio}`;
+                const semanaNum = Math.ceil(dia / 7); // Semana 1, 2, 3, 4, 5 del mes
+                const semanaTexto = `Semana ${semanaNum}`;
+
+                if(!metricas[mesTexto]) {
+                    metricas[mesTexto] = { totalFijos: 0, totalCasuales: 0, semanas: {} };
+                }
+                if(!metricas[mesTexto].semanas[semanaTexto]) {
+                    metricas[mesTexto].semanas[semanaTexto] = { fijos: 0, casuales: 0 };
+                }
+
+                if(r.fijo) {
+                    metricas[mesTexto].totalFijos++;
+                    metricas[mesTexto].semanas[semanaTexto].fijos++;
+                } else {
+                    metricas[mesTexto].totalCasuales++;
+                    metricas[mesTexto].semanas[semanaTexto].casuales++;
+                }
+            });
+
+            // Dibujar el HTML
+            const contenedor = document.getElementById('contenido-metricas');
+            let html = "";
+
+            const mesesKeys = Object.keys(metricas);
+            if(mesesKeys.length === 0) {
+                contenedor.innerHTML = "<p style='color:#9ca3af; text-align:center;'>Aún no hay reservas registradas.</p>";
+                return;
+            }
+
+            // Ordenamos los meses al revés (los más recientes arriba)
+            mesesKeys.sort().reverse().forEach(mes => {
+                html += `<div style="background:#242c36; padding:15px; border-radius:8px; margin-bottom:15px; border: 1px solid #2c3540;">`;
+                html += `<h4 style="margin:0 0 10px 0; color:#3b82f6; border-bottom:1px solid #44505d; padding-bottom:8px;">📅 ${mes}</h4>`;
+                html += `<div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <div style="flex: 1; background: #171d24; padding: 10px; border-radius: 6px; text-align: center;">
+                                <div style="font-size: 1.5em; font-weight: bold; color: #10b981;">${metricas[mes].totalCasuales}</div>
+                                <div style="font-size: 0.8em; color: #9ca3af;">Casuales</div>
+                            </div>
+                            <div style="flex: 1; background: #171d24; padding: 10px; border-radius: 6px; text-align: center;">
+                                <div style="font-size: 1.5em; font-weight: bold; color: #f59e0b;">${metricas[mes].totalFijos}</div>
+                                <div style="font-size: 0.8em; color: #9ca3af;">Fijos 📌</div>
+                            </div>
+                         </div>`;
+
+                // Subdivisión semanal
+                html += `<p style="font-size: 0.85em; color: #d1d5db; margin: 0 0 8px 0; font-weight: bold;">Desglose Semanal:</p>`;
+                
+                const semanasKeys = Object.keys(metricas[mes].semanas).sort();
+                semanasKeys.forEach(sem => {
+                    let datos = metricas[mes].semanas[sem];
+                    html += `<div style="display:flex; justify-content:space-between; font-size:0.85em; color:#9ca3af; margin-bottom:6px; padding-left:5px; border-left: 2px solid #44505d;">
+                                <span style="padding-left: 8px;">${sem}</span>
+                                <span><strong style="color: #10b981;">${datos.casuales}</strong> Cas. / <strong style="color: #f59e0b;">${datos.fijos}</strong> Fij.</span>
+                             </div>`;
+                });
+                
+                html += `</div>`;
+            });
+
+            contenedor.innerHTML = html;
+        }
+        // ------------------------------------
+
         // --- MODAL RESERVA JUGADOR Y CLUB ---
         window.abrirModalReservaJugador = function(hora, canchaPredeterminada = null) {
             
-            // Protección: No permitir reservas que superen el límite del último turno
             let minInicio = window.aMinutos(hora);
             let minUltimo = window.aMinutos(ultimoTurno);
             if (minInicio > minUltimo) {
@@ -359,7 +460,6 @@
                 return;
             }
 
-            // Si vino desde la grilla del club tocando una cancha específica, autoseleccionarla
             if (canchaPredeterminada && !canchasOcupadas.has(parseInt(canchaPredeterminada))) {
                 selectCancha.value = canchaPredeterminada;
             }
@@ -505,7 +605,6 @@
 
             let htmlGrilla = `<div class="contenedor-grilla">`;
             
-            // Columna Izquierda: Horas
             htmlGrilla += `<div style="width: 55px; flex-shrink: 0; border-right: 1px solid #2c3540; background: #1e252d;">`;
             htmlGrilla += `<div style="height: 40px; border-bottom: 1px solid #2c3540; background: #242c36;"></div>`; 
             for (let m = minActual; m < minFin; m += 30) {
@@ -517,12 +616,10 @@
             }
             htmlGrilla += `</div>`;
 
-            // Columnas de Canchas
             for(let c = 1; c <= cantidadCanchasGlobal; c++) {
                 htmlGrilla += `<div style="flex: 1; min-width: 140px; border-right: 1px solid #2c3540; position: relative;">`;
                 htmlGrilla += `<div style="height: 40px; border-bottom: 1px solid #2c3540; text-align: center; line-height: 40px; font-weight: bold; background: #242c36; font-size: 0.9em;">Cancha ${c}</div>`;
                 
-                // Calculamos qué bloques están ocupados para ESTA cancha, para no hacer clickeables las zonas ocupadas
                 let reservasCancha = reservasAMostrar.filter(r => (r.cancha || "1") == c);
                 let bloquesOcupadosCancha = new Set();
                 
@@ -534,7 +631,6 @@
                     }
                 });
 
-                // Dibujar el fondo interactivo
                 for (let m = minActual; m < minFin; m += 30) {
                     let esHoraEnPunto = (m % 60 === 0);
                     let hLabel = Math.floor(m / 60) % 24;
@@ -545,7 +641,6 @@
                     
                     let htmlExtra = "";
                     if (!bloquesOcupadosCancha.has(horaFormateada)) {
-                        // Si está libre, le damos la clase para el hover y el evento onclick para reservar directo ahí
                         htmlExtra = `class="celda-vacia-hover" style="height: 40px; ${borderStyle} box-sizing: border-box; cursor: pointer;" onclick="window.abrirModalReservaJugador('${horaFormateada}', '${c}')"`;
                     } else {
                         htmlExtra = `style="height: 40px; ${borderStyle} box-sizing: border-box;"`;
@@ -554,7 +649,6 @@
                     htmlGrilla += `<div ${htmlExtra}></div>`;
                 }
 
-                // Dibujar las tarjetas naranjas por encima
                 reservasCancha.forEach(res => {
                     let minRes = window.aMinutos(res.hora);
                     if (minRes < minActual && minFin > 1440) minRes += 1440;
