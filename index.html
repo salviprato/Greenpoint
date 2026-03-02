@@ -56,12 +56,40 @@
         .reservas-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; margin-top: 15px;
         }
+        
+        /* NUEVO: Estados de la tarjeta */
         .tarjeta-reserva {
             background-color: #f6a74b; color: #171d24; padding: 12px; border-radius: 8px; font-size: 0.9em; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            border-left: 6px solid #d97706; /* Detalle visual */
+            border-left: 6px solid #d97706; cursor: pointer; transition: transform 0.1s;
         }
+        .tarjeta-reserva:hover { transform: scale(1.02); }
+        
+        /* Tarjeta cuando confirman asistencia */
+        .tarjeta-reserva.asistio {
+            background-color: #3b82f6; color: #ffffff; border-left: 6px solid #1d4ed8;
+        }
+        
         .tarjeta-reserva p { margin: 5px 0; }
+        .estado-pagado { color: #047857; background: rgba(255,255,255,0.4); padding: 2px 6px; border-radius: 4px; }
         .mensaje-vacio { color: #9ca3af; text-align: center; margin-top: 20px; grid-column: 1 / -1; }
+
+        /* NUEVO: Ventana modal de acciones */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 1000;
+        }
+        .modal-content {
+            background: #1e252d; padding: 25px; border-radius: 12px; width: 90%; max-width: 300px;
+            display: flex; flex-direction: column; gap: 12px; border: 1px solid #44505d; text-align: center;
+        }
+        .btn-modal { padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; color: white; font-size: 1em; transition: 0.2s;}
+        .btn-asistencia { background-color: #3b82f6; }
+        .btn-asistencia:hover { background-color: #2563eb; }
+        .btn-pago { background-color: #10b981; }
+        .btn-pago:hover { background-color: #059669; }
+        .btn-eliminar { background-color: #ef4444; }
+        .btn-eliminar:hover { background-color: #dc2626; }
+        .btn-cerrar { background-color: #4b5563; margin-top: 10px;}
     </style>
 </head>
 <body>
@@ -96,14 +124,25 @@
             </div>
         </div>
 
-        <h3 style="margin-top: 10px; border-bottom: 1px solid #2c3540; padding-bottom: 10px;">Reservas de Hoy (Turnos de 1.5hs)</h3>
+        <h3 style="margin-top: 10px; border-bottom: 1px solid #2c3540; padding-bottom: 10px;">Reservas de Hoy</h3>
         <div class="reservas-grid" id="lista-reservas-club">
             </div>
     </div>
 
+    <div id="modal-acciones" class="modal-overlay">
+        <div class="modal-content">
+            <h3 style="margin: 0; margin-bottom: 10px;">Gestionar Turno</h3>
+            <button class="btn-modal btn-asistencia" onclick="window.accionAsistencia()">✔️ Confirmar Asistencia</button>
+            <button class="btn-modal btn-pago" onclick="window.accionPago()">💰 Marcar como Pagado</button>
+            <button class="btn-modal btn-eliminar" onclick="window.accionEliminar()">🗑️ Eliminar Reserva</button>
+            <button class="btn-modal btn-cerrar" onclick="window.cerrarModal()">Cancelar</button>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        // AGREGAMOS updateDoc y deleteDoc para modificar o borrar reservas
+        import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAMRLDlarJiomWY4IX5c6CR3RFWHqmMu30",
@@ -128,13 +167,13 @@
         let horaApertura = "08:00"; 
         let horaCierre = "23:30";   
         let reservasGlobales = [];
+        let reservaSeleccionadaId = null; // Guarda el ID de la tarjeta a la que le hacemos clic
 
-        // --- HERRAMIENTAS DE TIEMPO MATEMÁTICO ---
+        // Herramientas matemáticas de tiempo
         window.aMinutos = function(horaStr) {
             let [h, m] = horaStr.split(':').map(Number);
             return (h * 60) + m;
         }
-
         window.sumarMinutos = function(horaStr, minutosAñadir) {
             let [h, m] = horaStr.split(':').map(Number);
             let total = (h * 60) + m + minutosAñadir;
@@ -143,7 +182,6 @@
             if (nuevaH >= 24) nuevaH -= 24;
             return `${nuevaH.toString().padStart(2, '0')}:${nuevoM.toString().padStart(2, '0')}`;
         }
-        // ------------------------------------------
 
         window.cambiarVista = function(vista) {
             document.getElementById('pantalla-jugador').style.display = vista === 'jugador' ? 'block' : 'none';
@@ -160,7 +198,6 @@
                     await setDoc(doc(db, "configuracion", "club"), { horaApertura: apertura, horaCierre: cierre });
                     alert("¡Horario actualizado correctamente!");
                 } catch (error) {
-                    console.error(error);
                     alert("Hubo un error al guardar.");
                 }
             }
@@ -170,13 +207,52 @@
             const nombre = prompt(`Vas a reservar a las ${hora} hs (Duración: 1h 30m).\nPor favor, ingresa tu Nombre y Apellido:`);
             if (nombre && nombre.trim() !== "") {
                 try {
-                    await addDoc(collection(db, "reservas"), { hora: hora, jugador: nombre, fechaRegistro: new Date() });
+                    await addDoc(collection(db, "reservas"), { 
+                        hora: hora, 
+                        jugador: nombre, 
+                        fechaRegistro: new Date(),
+                        asistencia: false, // Por defecto no han llegado
+                        pagado: false      // Por defecto no han pagado
+                    });
                     alert("¡Reserva guardada con éxito!");
                 } catch (error) {
                     alert("Hubo un error de conexión.");
                 }
             }
         }
+
+        // --- NUEVAS FUNCIONES PARA EL MODAL DE ACCIONES ---
+        window.abrirModal = function(id) {
+            reservaSeleccionadaId = id;
+            document.getElementById('modal-acciones').style.display = 'flex';
+        }
+
+        window.cerrarModal = function() {
+            reservaSeleccionadaId = null;
+            document.getElementById('modal-acciones').style.display = 'none';
+        }
+
+        window.accionAsistencia = async function() {
+            if(reservaSeleccionadaId) {
+                await updateDoc(doc(db, "reservas", reservaSeleccionadaId), { asistencia: true });
+                window.cerrarModal();
+            }
+        }
+
+        window.accionPago = async function() {
+            if(reservaSeleccionadaId) {
+                await updateDoc(doc(db, "reservas", reservaSeleccionadaId), { pagado: true });
+                window.cerrarModal();
+            }
+        }
+
+        window.accionEliminar = async function() {
+            if(reservaSeleccionadaId && confirm("¿Estás seguro que deseas eliminar esta reserva? Este horario volverá a estar disponible.")) {
+                await deleteDoc(doc(db, "reservas", reservaSeleccionadaId));
+                window.cerrarModal();
+            }
+        }
+        // ---------------------------------------------------
 
         onSnapshot(doc(db, "configuracion", "club"), (documento) => {
             if (documento.exists()) {
@@ -190,7 +266,8 @@
 
         onSnapshot(collection(db, "reservas"), (snapshot) => {
             reservasGlobales = [];
-            snapshot.forEach((doc) => reservasGlobales.push(doc.data()));
+            // Ahora guardamos también el ID interno de Firebase (fundamental para poder borrar o actualizar el documento correcto)
+            snapshot.forEach((doc) => reservasGlobales.push({ id: doc.id, ...doc.data() }));
             renderizarPantallas(); 
         });
 
@@ -200,7 +277,6 @@
             contenedorHorarios.innerHTML = '';
             contenedorClub.innerHTML = '';
 
-            // 1. Calculamos todos los bloques de 30 min que ya están ocupados (¡3 bloques por reserva!)
             let bloquesOcupados = [];
             reservasGlobales.forEach(r => {
                 bloquesOcupados.push(r.hora); 
@@ -208,11 +284,9 @@
                 bloquesOcupados.push(window.sumarMinutos(r.hora, 60));
             });
 
-            // 2. Filtramos la lista para mostrar solo dentro del horario del club
             const horariosFiltrados = horariosBase.filter(h => h >= horaApertura && h <= horaCierre);
 
             horariosFiltrados.forEach(hora => {
-                // Comprobamos si los 3 bloques que necesita este turno están libres
                 let bloque1 = hora;
                 let bloque2 = window.sumarMinutos(hora, 30);
                 let bloque3 = window.sumarMinutos(hora, 60);
@@ -222,11 +296,10 @@
                                 !bloquesOcupados.includes(bloque2) && 
                                 !bloquesOcupados.includes(bloque3);
 
-                // Evitamos que un turno de 90 min termine después de que el club cerró
                 let minInicio = window.aMinutos(hora);
                 let minFin = minInicio + 90;
                 let minCierre = window.aMinutos(horaCierre);
-                if (minCierre === 0) minCierre = 1440; // Por si el cierre es 00:00 (medianoche)
+                if (minCierre === 0) minCierre = 1440; 
 
                 if (estaLibre && minFin <= minCierre) {
                     const div = document.createElement('div');
@@ -245,12 +318,23 @@
                     const horaFin = window.sumarMinutos(reserva.hora, 90);
                     const tarjeta = document.createElement('div');
                     tarjeta.className = 'tarjeta-reserva';
-                    // Ahora la tarjeta muestra explícitamente el rango de horas del turno completo
+                    
+                    // Si asistió, le ponemos la clase que la pinta de azul
+                    if (reserva.asistencia) {
+                        tarjeta.classList.add('asistio');
+                    }
+
+                    // Preparamos el texto del saldo
+                    let textoSaldo = reserva.pagado ? '<span class="estado-pagado">✅ Pagado</span>' : 'Pendiente';
+
+                    // Al hacer clic en la tarjeta, abrimos el modal pasándole el ID de Firebase
+                    tarjeta.onclick = () => window.abrirModal(reserva.id);
+
                     tarjeta.innerHTML = `
-                        <p style="font-size: 1.1em; border-bottom: 1px solid #171d24; padding-bottom: 5px; margin-top: 0;">⏱️ ${reserva.hora} a ${horaFin} hs</p>
+                        <p style="font-size: 1.1em; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 5px; margin-top: 0;">⏱️ ${reserva.hora} a ${horaFin} hs</p>
                         <p>👤 ${reserva.jugador}</p>
-                        <p>📌 Cancha 1 (1.5 hs)</p>
-                        <p>Saldo: Pendiente</p>
+                        <p>📌 Cancha 1</p>
+                        <p>Saldo: ${textoSaldo}</p>
                     `;
                     contenedorClub.appendChild(tarjeta);
                 });
