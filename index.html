@@ -30,7 +30,6 @@
         .header-fecha { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.2em; margin-bottom: 15px; }
         .sub-header { display: flex; justify-content: space-between; color: #9ca3af; font-size: 0.9em; padding-bottom: 10px; border-bottom: 1px solid #2c3540; margin-bottom: 10px; }
         
-        /* Contenedor con scroll para que la lista larga no ocupe toda la pantalla infinita */
         #lista-horarios { max-height: 500px; overflow-y: auto; padding-right: 5px; }
         #lista-horarios::-webkit-scrollbar { width: 6px; }
         #lista-horarios::-webkit-scrollbar-thumb { background: #44505d; border-radius: 4px; }
@@ -92,15 +91,15 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- NUEVO: Generador de horarios cada 30 min (De 08:00 a 23:30) ---
+        // --- ACTUALIZADO: Generador de horarios cada 30 min (De 00:00 a 23:30) ---
         const horariosBase = [];
-        for (let h = 8; h <= 23; h++) { 
-            let horaStr = h.toString().padStart(2, '0'); // Añade un 0 a los números de un dígito (ej: 08)
+        for (let h = 0; h <= 23; h++) { 
+            let horaStr = h.toString().padStart(2, '0');
             horariosBase.push(`${horaStr}:00`);
             horariosBase.push(`${horaStr}:30`);
         }
-        horariosBase.reverse(); // Invertimos la lista para que 23:30 quede arriba
-        // ------------------------------------------------------------------
+        horariosBase.reverse(); // Invertimos para que 23:30 quede arriba y 00:00 abajo
+        // -------------------------------------------------------------------------
 
         window.cambiarVista = function(vista) {
             document.getElementById('pantalla-jugador').style.display = vista === 'jugador' ? 'block' : 'none';
@@ -152,7 +151,7 @@
             if (reservas.length === 0) {
                 contenedorClub.innerHTML = '<div class="mensaje-vacio">Aún no hay reservas hoy.</div>';
             } else {
-                reservas.sort((a, b) => b.hora.localeCompare(a.hora)); // Ordenamos las tarjetas también de mayor a menor
+                reservas.sort((a, b) => b.hora.localeCompare(a.hora)); 
                 reservas.forEach(reserva => {
                     const tarjeta = document.createElement('div');
                     tarjeta.className = 'tarjeta-reserva';
