@@ -47,7 +47,6 @@
 
         .sub-header { display: flex; justify-content: space-between; align-items: center; color: #9ca3af; font-size: 0.9em; padding-bottom: 10px; border-bottom: 1px solid #2c3540; margin-bottom: 10px; }
         
-        /* NUEVO: Estilo para el selector de canchas */
         .select-cancha {
             background-color: #242c36; color: white; border: 1px solid #44505d; padding: 6px 10px; 
             border-radius: 6px; font-weight: bold; font-family: inherit; cursor: pointer; outline: none;
@@ -204,7 +203,7 @@
 
             fechasValidas.forEach((fechaISO, index) => {
                 const partes = fechaISO.split('-');
-                const f = new Date(partes[0], partes[1] - 1, partes[2]);
+                const f = new Date(partpartes[0], partes[1] - 1, partes[2]);
                 const nombreDia = index === 0 ? 'HOY' : diasCortos[f.getDay()];
                 const numeroDia = f.getDate().toString().padStart(2, '0');
                 const esActivo = fechaISO === fechaSeleccionada ? 'activo' : '';
@@ -234,11 +233,10 @@
         }
         horariosBase.reverse(); 
 
-        // Variables de Configuración Global
         let horaApertura = "08:00"; 
         let horaCierre = "23:30";   
         let precioGlobal = "15000"; 
-        let cantidadCanchasGlobal = 1; // NUEVO
+        let cantidadCanchasGlobal = 1; 
         let reservasGlobales = [];
         let reservaSeleccionadaId = null; 
 
@@ -256,7 +254,6 @@
             document.getElementById('btn-club').classList.toggle('activo', vista === 'club');
         }
 
-        // NUEVO: Función para actualizar el selector de canchas del jugador según la configuración
         window.actualizarDropdownCanchas = function() {
             const select = document.getElementById('select-cancha-jugador');
             const valorActual = select.value;
@@ -264,7 +261,6 @@
             for(let i = 1; i <= cantidadCanchasGlobal; i++) {
                 select.innerHTML += `<option value="${i}" style="color: black;">Cancha ${i}</option>`;
             }
-            // Si la cancha que estaba mirando sigue existiendo, la mantenemos seleccionada
             if (valorActual <= cantidadCanchasGlobal) {
                 select.value = valorActual;
             }
@@ -274,7 +270,7 @@
             const apertura = document.getElementById('input-apertura').value;
             const cierre = document.getElementById('input-cierre').value;
             const precio = document.getElementById('input-precio').value;
-            const canchas = document.getElementById('input-canchas').value; // Leemos la cantidad
+            const canchas = document.getElementById('input-canchas').value; 
             
             if(apertura && cierre && precio && canchas) {
                 try { 
@@ -282,7 +278,7 @@
                         horaApertura: apertura, 
                         horaCierre: cierre, 
                         precioTurno: precio,
-                        canchas: canchas // Guardamos la cantidad
+                        canchas: canchas 
                     }); 
                     alert("¡Configuración actualizada con éxito!"); 
                 } catch (error) { alert("Error al guardar."); }
@@ -290,7 +286,6 @@
         }
 
         window.reservarCancha = async function(hora) {
-            // Leemos qué cancha estaba viendo el jugador
             const canchaActual = document.getElementById('select-cancha-jugador').value || "1";
             
             const partes = fechaSeleccionada.split('-');
@@ -303,7 +298,7 @@
                     await addDoc(collection(db, "reservas"), { 
                         fecha: fechaSeleccionada,
                         hora: hora, 
-                        cancha: canchaActual, // Guardamos a qué cancha pertenece
+                        cancha: canchaActual, 
                         jugador: nombre, 
                         fechaRegistro: new Date(),
                         asistencia: false, 
@@ -326,14 +321,14 @@
                 horaApertura = documento.data().horaApertura || "08:00";
                 horaCierre = documento.data().horaCierre || "23:30";
                 precioGlobal = documento.data().precioTurno || "15000";
-                cantidadCanchasGlobal = parseInt(documento.data().canchas) || 1; // Cargamos la cantidad de canchas
+                cantidadCanchasGlobal = parseInt(documento.data().canchas) || 1; 
                 
                 document.getElementById('input-apertura').value = horaApertura;
                 document.getElementById('input-cierre').value = horaCierre;
                 document.getElementById('input-precio').value = precioGlobal;
                 document.getElementById('input-canchas').value = cantidadCanchasGlobal;
             }
-            window.actualizarDropdownCanchas(); // Actualizamos la vista del jugador
+            window.actualizarDropdownCanchas(); 
             renderizarPantallas(); 
         });
 
@@ -343,7 +338,6 @@
             renderizarPantallas(); 
         });
 
-        // NUEVO: EXPUSIMOS LA FUNCIÓN PARA QUE EL HTML LA PUEDA LLAMAR AL CAMBIAR EL SELECT
         window.renderizarPantallas = function() {
             const contenedorHorarios = document.getElementById('lista-horarios');
             const contenedorClub = document.getElementById('lista-reservas-club');
@@ -352,13 +346,11 @@
 
             const canchaVistaJugador = document.getElementById('select-cancha-jugador').value || "1";
 
-            // Reservas de este día en específico
             const reservasDelDia = reservasGlobales.filter(r => {
                 const fechaReserva = r.fecha || fechasValidas[0]; 
                 return fechaReserva === fechaSeleccionada;
             });
 
-            // FILTRO PARA JUGADOR: Solo tomamos las reservas que ocupen la cancha que está mirando
             const reservasCanchaJugador = reservasDelDia.filter(r => (r.cancha || "1") === canchaVistaJugador);
 
             let bloquesOcupadosJugador = [];
@@ -394,11 +386,9 @@
                 }
             });
 
-            // VISTA DEL CLUB: Muestra TODAS las reservas del día (mezcladas de todas las canchas)
             if (reservasDelDia.length === 0) {
                 contenedorClub.innerHTML = '<div class="mensaje-vacio">No hay reservas para este día en ninguna cancha.</div>';
             } else {
-                // Ordenar por hora
                 const reservasOrdenadas = [...reservasDelDia].sort((a, b) => b.hora.localeCompare(a.hora)); 
                 reservasOrdenadas.forEach(reserva => {
                     const horaFin = window.sumarMinutos(reserva.hora, 90);
@@ -413,7 +403,6 @@
 
                     tarjeta.onclick = () => window.abrirModal(reserva.id);
 
-                    // NUEVO: La tarjeta ahora muestra explícitamente a qué cancha pertenece
                     tarjeta.innerHTML = `
                         <p style="font-size: 1.1em; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 5px; margin-top: 0;">⏱️ ${reserva.hora} a ${horaFin}</p>
                         <p>👤 ${reserva.jugador}</p>
