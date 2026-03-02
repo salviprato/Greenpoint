@@ -158,12 +158,31 @@
         }
         window.cerrarSesion = () => signOut(auth);
 
-        onAuthStateChanged(auth, (user) => {
+       onAuthStateChanged(auth, (user) => {
             if (user) {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('admin-screen').style.display = 'block';
-                iniciarSistemaAdmin();
+                // DICCIONARIO DE PERMISOS: Aquí conectas cada correo con su club
+                const permisos = {
+                    "admin@greenpoint.com": "greenpoint",
+                    "admin@padelpro.com": "padelpro",
+                    "tu_correo@gmail.com": "superadmin" // Este puede ver cualquier club
+                };
+
+                const clubPermitido = permisos[user.email];
+
+                // Verificamos si tiene permiso para el club de la URL actual
+                if (clubPermitido === clubID || clubPermitido === "superadmin") {
+                    // Acceso concedido
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('admin-screen').style.display = 'block';
+                    iniciarSistemaAdmin();
+                } else {
+                    // Acceso denegado (intentó entrar a un club que no le corresponde)
+                    alert("Tu correo no tiene permisos para administrar este club.");
+                    window.cerrarSesion();
+                }
+
             } else {
+                // No ha iniciado sesión
                 document.getElementById('login-screen').style.display = 'block';
                 document.getElementById('admin-screen').style.display = 'none';
             }
