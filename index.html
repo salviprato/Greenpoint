@@ -28,7 +28,6 @@
             border-radius: 12px; padding: 20px; box-sizing: border-box;
         }
         
-        /* NUEVO: ESTILOS DEL CALENDARIO HORIZONTAL */
         .calendario-strip {
             display: flex; overflow-x: auto; gap: 10px; padding-bottom: 12px; margin-bottom: 15px; border-bottom: 1px solid #2c3540;
         }
@@ -45,10 +44,15 @@
         .dia-nombre { font-size: 0.8em; color: #9ca3af; text-transform: uppercase; font-weight: bold;}
         .dia-item.activo .dia-nombre { color: #e5e7eb; }
         .dia-numero { font-size: 1.4em; font-weight: bold; margin-top: 4px; }
-        /* -------------------------------------- */
 
-        .sub-header { display: flex; justify-content: space-between; color: #9ca3af; font-size: 0.9em; padding-bottom: 10px; border-bottom: 1px solid #2c3540; margin-bottom: 10px; }
+        .sub-header { display: flex; justify-content: space-between; align-items: center; color: #9ca3af; font-size: 0.9em; padding-bottom: 10px; border-bottom: 1px solid #2c3540; margin-bottom: 10px; }
         
+        /* NUEVO: Estilo para el selector de canchas */
+        .select-cancha {
+            background-color: #242c36; color: white; border: 1px solid #44505d; padding: 6px 10px; 
+            border-radius: 6px; font-weight: bold; font-family: inherit; cursor: pointer; outline: none;
+        }
+
         #lista-horarios { max-height: 500px; overflow-y: auto; padding-right: 5px; }
         #lista-horarios::-webkit-scrollbar { width: 6px; }
         #lista-horarios::-webkit-scrollbar-thumb { background: #44505d; border-radius: 4px; }
@@ -68,7 +72,7 @@
         .config-club { background-color: #242c36; padding: 15px; border-radius: 8px; margin-bottom: 25px; border: 1px solid #2c3540; }
         .inputs-horarios { display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; margin-top: 10px; }
         .inputs-horarios div { display: flex; flex-direction: column; gap: 5px; font-size: 0.9em; color: #d1d5db; }
-        .inputs-horarios input { padding: 8px; border-radius: 5px; border: 1px solid #44505d; background-color: #171d24; color: white; color-scheme: dark; font-family: inherit; max-width: 120px;}
+        .inputs-horarios input { padding: 8px; border-radius: 5px; border: 1px solid #44505d; background-color: #171d24; color: white; color-scheme: dark; font-family: inherit; max-width: 90px;}
         .btn-guardar { background-color: #10b981; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .btn-guardar:hover { background-color: #059669; }
 
@@ -122,7 +126,12 @@
         <div id="calendario-jugador" class="calendario-strip">
             </div>
 
-        <div class="sub-header"><span>Cancha 1</span><span>Greenpoint</span></div>
+        <div class="sub-header">
+            <select id="select-cancha-jugador" class="select-cancha" onchange="window.renderizarPantallas()">
+                <option value="1">Cancha 1</option>
+            </select>
+            <span>Greenpoint</span>
+        </div>
         <div id="lista-horarios">Cargando horarios...</div>
     </div>
 
@@ -135,7 +144,8 @@
                 <div><label>Abre:</label><input type="time" id="input-apertura" value="08:00"></div>
                 <div><label>Cierra:</label><input type="time" id="input-cierre" value="23:30"></div>
                 <div><label>Precio ($):</label><input type="number" id="input-precio" value="15000" step="500"></div>
-                <button class="btn-guardar" onclick="window.guardarConfiguracion()">Guardar</button>
+                <div><label>Nº Canchas:</label><input type="number" id="input-canchas" value="1" min="1" max="20"></div>
+                <button class="btn-guardar" onclick="window.guardarConfiguracion()">Guardar Todo</button>
             </div>
         </div>
 
@@ -173,10 +183,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- LÓGICA DEL CALENDARIO VISUAL ---
         let fechasValidas = [];
         let fechaActual = new Date();
-        
         for (let i = 0; i <= 7; i++) {
             let f = new Date(fechaActual);
             f.setDate(f.getDate() + i);
@@ -185,26 +193,20 @@
             let dia = f.getDate().toString().padStart(2, '0');
             fechasValidas.push(`${anio}-${mes}-${dia}`); 
         }
-        
-        let fechaSeleccionada = fechasValidas[0]; // Arrancamos en "Hoy"
+        let fechaSeleccionada = fechasValidas[0]; 
 
-        // Esta función dibuja las cajitas de los días
         function renderizarCalendarios() {
             const calJugador = document.getElementById('calendario-jugador');
             const calClub = document.getElementById('calendario-club');
             calJugador.innerHTML = '';
             calClub.innerHTML = '';
-
             const diasCortos = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
             fechasValidas.forEach((fechaISO, index) => {
                 const partes = fechaISO.split('-');
                 const f = new Date(partes[0], partes[1] - 1, partes[2]);
-                
-                // Si es el primer día (index 0), ponemos "HOY" en lugar del nombre del día
                 const nombreDia = index === 0 ? 'HOY' : diasCortos[f.getDay()];
                 const numeroDia = f.getDate().toString().padStart(2, '0');
-                
                 const esActivo = fechaISO === fechaSeleccionada ? 'activo' : '';
 
                 const htmlDia = `
@@ -213,7 +215,6 @@
                         <span class="dia-numero">${numeroDia}</span>
                     </div>
                 `;
-
                 calJugador.innerHTML += htmlDia;
                 calClub.innerHTML += htmlDia;
             });
@@ -221,10 +222,9 @@
 
         window.seleccionarFecha = function(fechaISO) {
             fechaSeleccionada = fechaISO;
-            renderizarCalendarios(); // Redibuja para pintar de azul el elegido
-            renderizarPantallas();   // Actualiza los turnos
+            renderizarCalendarios(); 
+            renderizarPantallas();   
         }
-        // ------------------------------------
 
         const horariosBase = [];
         for (let h = 0; h <= 23; h++) { 
@@ -234,9 +234,11 @@
         }
         horariosBase.reverse(); 
 
+        // Variables de Configuración Global
         let horaApertura = "08:00"; 
         let horaCierre = "23:30";   
         let precioGlobal = "15000"; 
+        let cantidadCanchasGlobal = 1; // NUEVO
         let reservasGlobales = [];
         let reservaSeleccionadaId = null; 
 
@@ -254,28 +256,54 @@
             document.getElementById('btn-club').classList.toggle('activo', vista === 'club');
         }
 
+        // NUEVO: Función para actualizar el selector de canchas del jugador según la configuración
+        window.actualizarDropdownCanchas = function() {
+            const select = document.getElementById('select-cancha-jugador');
+            const valorActual = select.value;
+            select.innerHTML = '';
+            for(let i = 1; i <= cantidadCanchasGlobal; i++) {
+                select.innerHTML += `<option value="${i}" style="color: black;">Cancha ${i}</option>`;
+            }
+            // Si la cancha que estaba mirando sigue existiendo, la mantenemos seleccionada
+            if (valorActual <= cantidadCanchasGlobal) {
+                select.value = valorActual;
+            }
+        }
+
         window.guardarConfiguracion = async function() {
             const apertura = document.getElementById('input-apertura').value;
             const cierre = document.getElementById('input-cierre').value;
             const precio = document.getElementById('input-precio').value;
-            if(apertura && cierre && precio) {
-                try { await setDoc(doc(db, "configuracion", "club"), { horaApertura: apertura, horaCierre: cierre, precioTurno: precio }); alert("¡Guardado!"); } 
-                catch (error) { alert("Error al guardar."); }
+            const canchas = document.getElementById('input-canchas').value; // Leemos la cantidad
+            
+            if(apertura && cierre && precio && canchas) {
+                try { 
+                    await setDoc(doc(db, "configuracion", "club"), { 
+                        horaApertura: apertura, 
+                        horaCierre: cierre, 
+                        precioTurno: precio,
+                        canchas: canchas // Guardamos la cantidad
+                    }); 
+                    alert("¡Configuración actualizada con éxito!"); 
+                } catch (error) { alert("Error al guardar."); }
             }
         }
 
         window.reservarCancha = async function(hora) {
-            // Formatear para el mensaje de alerta
+            // Leemos qué cancha estaba viendo el jugador
+            const canchaActual = document.getElementById('select-cancha-jugador').value || "1";
+            
             const partes = fechaSeleccionada.split('-');
             const f = new Date(partes[0], partes[1] - 1, partes[2]);
             const fechaBonita = `${f.getDate()}/${f.getMonth() + 1}`;
 
-            const nombre = prompt(`Vas a reservar el ${fechaBonita} a las ${hora} hs (1.5h).\nIngresa tu Nombre y Apellido:`);
+            const nombre = prompt(`Reserva: ${fechaBonita} | ${hora} hs | Cancha ${canchaActual}\nIngresa tu Nombre y Apellido:`);
             if (nombre && nombre.trim() !== "") {
                 try {
                     await addDoc(collection(db, "reservas"), { 
                         fecha: fechaSeleccionada,
                         hora: hora, 
+                        cancha: canchaActual, // Guardamos a qué cancha pertenece
                         jugador: nombre, 
                         fechaRegistro: new Date(),
                         asistencia: false, 
@@ -298,10 +326,14 @@
                 horaApertura = documento.data().horaApertura || "08:00";
                 horaCierre = documento.data().horaCierre || "23:30";
                 precioGlobal = documento.data().precioTurno || "15000";
+                cantidadCanchasGlobal = parseInt(documento.data().canchas) || 1; // Cargamos la cantidad de canchas
+                
                 document.getElementById('input-apertura').value = horaApertura;
                 document.getElementById('input-cierre').value = horaCierre;
                 document.getElementById('input-precio').value = precioGlobal;
+                document.getElementById('input-canchas').value = cantidadCanchasGlobal;
             }
+            window.actualizarDropdownCanchas(); // Actualizamos la vista del jugador
             renderizarPantallas(); 
         });
 
@@ -311,22 +343,29 @@
             renderizarPantallas(); 
         });
 
-        function renderizarPantallas() {
+        // NUEVO: EXPUSIMOS LA FUNCIÓN PARA QUE EL HTML LA PUEDA LLAMAR AL CAMBIAR EL SELECT
+        window.renderizarPantallas = function() {
             const contenedorHorarios = document.getElementById('lista-horarios');
             const contenedorClub = document.getElementById('lista-reservas-club');
             contenedorHorarios.innerHTML = '';
             contenedorClub.innerHTML = '';
 
+            const canchaVistaJugador = document.getElementById('select-cancha-jugador').value || "1";
+
+            // Reservas de este día en específico
             const reservasDelDia = reservasGlobales.filter(r => {
                 const fechaReserva = r.fecha || fechasValidas[0]; 
                 return fechaReserva === fechaSeleccionada;
             });
 
-            let bloquesOcupados = [];
-            reservasDelDia.forEach(r => {
-                bloquesOcupados.push(r.hora); 
-                bloquesOcupados.push(window.sumarMinutos(r.hora, 30));
-                bloquesOcupados.push(window.sumarMinutos(r.hora, 60));
+            // FILTRO PARA JUGADOR: Solo tomamos las reservas que ocupen la cancha que está mirando
+            const reservasCanchaJugador = reservasDelDia.filter(r => (r.cancha || "1") === canchaVistaJugador);
+
+            let bloquesOcupadosJugador = [];
+            reservasCanchaJugador.forEach(r => {
+                bloquesOcupadosJugador.push(r.hora); 
+                bloquesOcupadosJugador.push(window.sumarMinutos(r.hora, 30));
+                bloquesOcupadosJugador.push(window.sumarMinutos(r.hora, 60));
             });
 
             const horariosFiltrados = horariosBase.filter(h => h >= horaApertura && h <= horaCierre);
@@ -337,9 +376,9 @@
                 let bloque3 = window.sumarMinutos(hora, 60);
                 let horaFinStr = window.sumarMinutos(hora, 90);
 
-                let estaLibre = !bloquesOcupados.includes(bloque1) && 
-                                !bloquesOcupados.includes(bloque2) && 
-                                !bloquesOcupados.includes(bloque3);
+                let estaLibre = !bloquesOcupadosJugador.includes(bloque1) && 
+                                !bloquesOcupadosJugador.includes(bloque2) && 
+                                !bloquesOcupadosJugador.includes(bloque3);
 
                 let minInicio = window.aMinutos(hora);
                 let minFin = minInicio + 90;
@@ -350,14 +389,16 @@
                     const div = document.createElement('div');
                     div.className = 'turno-item';
                     div.onclick = () => window.reservarCancha(hora);
-                    div.innerHTML = `<span class="punto-verde"></span><span class="hora">${hora} hs | </span><span class="texto-disponible">Turno de 1.5 hs (hasta ${horaFinStr} hs)</span>`;
+                    div.innerHTML = `<span class="punto-verde"></span><span class="hora">${hora} hs | </span><span class="texto-disponible">Libre (1.5 hs)</span>`;
                     contenedorHorarios.appendChild(div);
                 }
             });
 
+            // VISTA DEL CLUB: Muestra TODAS las reservas del día (mezcladas de todas las canchas)
             if (reservasDelDia.length === 0) {
-                contenedorClub.innerHTML = '<div class="mensaje-vacio">No hay reservas para este día.</div>';
+                contenedorClub.innerHTML = '<div class="mensaje-vacio">No hay reservas para este día en ninguna cancha.</div>';
             } else {
+                // Ordenar por hora
                 const reservasOrdenadas = [...reservasDelDia].sort((a, b) => b.hora.localeCompare(a.hora)); 
                 reservasOrdenadas.forEach(reserva => {
                     const horaFin = window.sumarMinutos(reserva.hora, 90);
@@ -372,10 +413,11 @@
 
                     tarjeta.onclick = () => window.abrirModal(reserva.id);
 
+                    // NUEVO: La tarjeta ahora muestra explícitamente a qué cancha pertenece
                     tarjeta.innerHTML = `
-                        <p style="font-size: 1.1em; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 5px; margin-top: 0;">⏱️ ${reserva.hora} a ${horaFin} hs</p>
+                        <p style="font-size: 1.1em; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 5px; margin-top: 0;">⏱️ ${reserva.hora} a ${horaFin}</p>
                         <p>👤 ${reserva.jugador}</p>
-                        <p>📌 Cancha 1</p>
+                        <p style="font-size: 1.2em; color: #10b981;">📌 Cancha ${reserva.cancha || "1"}</p>
                         <p>Precio: $${precioGlobal}</p>
                         <p>Saldo: ${textoSaldo}</p>
                     `;
@@ -384,7 +426,6 @@
             }
         }
 
-        // Arrancamos todo
         renderizarCalendarios();
 
     </script>
