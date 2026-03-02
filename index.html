@@ -92,13 +92,13 @@
             padding: 10px; border-radius: 6px; border: 1px solid #44505d; background-color: #171d24; 
             color: white; color-scheme: dark; font-family: inherit; width: 100%; box-sizing: border-box;
         }
-        .btn-modal { padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; color: white; font-size: 1em; transition: 0.2s;}
+        .btn-modal { padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; color: white; font-size: 1em; transition: 0.2s; width: 100%; box-sizing: border-box;}
+        .btn-fijar { background-color: #10b981; } .btn-fijar:hover { background-color: #059669; }
         .btn-guardar { background-color: #10b981; } .btn-guardar:hover { background-color: #059669; }
         .btn-asistencia { background-color: #3b82f6; } .btn-asistencia:hover { background-color: #2563eb; }
-        .btn-pago { background-color: #10b981; } .btn-pago:hover { background-color: #059669; }
-        .btn-nopago { background-color: #f59e0b; } .btn-nopago:hover { background-color: #d97706; }
         .btn-eliminar { background-color: #ef4444; } .btn-eliminar:hover { background-color: #dc2626; }
         .btn-cerrar { background-color: #4b5563; margin-top: 10px;}
+        .btn-gray-two-col { background-color: #4b5563; flex: 1; } .btn-gray-two-col:hover { background-color: #444c56; }
     </style>
 </head>
 <body>
@@ -168,11 +168,16 @@
     <div id="modal-acciones" class="modal-overlay">
         <div class="modal-content">
             <h3 style="margin: 0; margin-bottom: 10px;">Gestionar Turno</h3>
-            <button class="btn-modal btn-asistencia" onclick="window.accionAsistencia()">✔️ Confirmar Asistencia</button>
-            <button class="btn-modal btn-pago" onclick="window.accionPago()">✅ Marcar como Pagado</button>
-            <button class="btn-modal btn-nopago" onclick="window.accionNoPago()">❌ Marcar como No Pagado</button>
-            <button class="btn-modal btn-eliminar" onclick="window.accionEliminar()">🗑️ Eliminar Reserva</button>
-            <button class="btn-modal btn-cerrar" onclick="window.cerrarModalAcciones()">Cancelar</button>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn-modal btn-asistencia" onclick="window.accionAsistencia()">✔️ Confirmar Asistencia</button>
+                <button class="btn-modal btn-fijar" onclick="window.accionFijarTurno()">📌 Fijar Turno</button>
+                <div style="display: flex; gap: 10px; justify-content: space-between;">
+                    <button class="btn-modal btn-gray-two-col" onclick="window.accionPago()">✅ Pagado</button>
+                    <button class="btn-modal btn-gray-two-col" onclick="window.accionNoPago()">❌ Pendiente</button>
+                </div>
+                <button class="btn-modal btn-eliminar" onclick="window.accionEliminar()">🗑️ Eliminar Reserva</button>
+                <button class="btn-modal btn-cerrar" onclick="window.cerrarModalAcciones()">Cancelar</button>
+            </div>
         </div>
     </div>
 
@@ -191,6 +196,25 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
+        // --- Tools_Firebase (Add default fijo prop to reservation) ---
+        window.reservarCancha = async function(hora) {
+            const canchaActual = document.getElementById('select-cancha-modal').value || "1";
+            const partes = fechaSeleccionada.split('-');
+            const f = new Date(partes[0], partes[1] - 1, partes[2]);
+            const fechaBonita = `${f.getDate()}/${f.getMonth() + 1}`;
+
+            const promptNombre = prompt(`Reserva: ${fechaBonita} | ${hora} hs | Cancha ${canchaActual}\nIngresa tu Nombre y Apellido:`);
+            if (promptNombre && promptNombre.trim() !== "") {
+                try {
+                    await addDoc(collection(db, "reservas"), { 
+                        fecha: fechaSeleccionada, hora: hora, cancha: canchaActual, jugador: promptNombre, 
+                        fechaRegistro: new Date(), asistencia: false, pagado: false, fijo: false // Added default fijo prop
+                    });
+                    alert("¡Reserva guardada con éxito!");
+                } catch (error) { alert("Hubo un error de conexión."); }
+            }
+        }
 
         // --- CALENDARIO ---
         let fechasValidas = [];
@@ -245,12 +269,17 @@
         let reservaSeleccionadaId = null; 
         let reservaEnProcesoHora = null;
 
-        // --- MATEMÁTICAS DE TIEMPO ---
+        // --- MATEMÁTICAS DE TIEMPO (Update with DoW function) ---
         window.aMinutos = function(horaStr) { let [h, m] = horaStr.split(':').map(Number); return (h * 60) + m; }
         window.sumarMinutos = function(horaStr, minutosAñadir) {
             let [h, m] = horaStr.split(':').map(Number); let total = (h * 60) + m + minutosAñadir;
             let nuevaH = Math.floor(total / 60); let nuevoM = total % 60;
             if (nuevaH >= 24) nuevaH -= 24; return `${nuevaH.toString().padStart(2, '0')}:${nuevoM.toString().padStart(2, '0')}`;
+        }
+        window.getDayOfWeekFromDate = function(dateString) { // dateString is ISO e.g., '2024-03-25'
+            const partes = dateString.split('-');
+            const f = new Date(partes[0], partes[1] - 1, partes[2]);
+            return f.getDay(); // Returns 0 (Sun) to 6 (Sat)
         }
 
         // --- NAVEGACIÓN Y MODALES ---
@@ -266,7 +295,7 @@
         window.abrirModal = function(id) { reservaSeleccionadaId = id; document.getElementById('modal-acciones').style.display = 'flex'; }
         window.cerrarModalAcciones = function() { reservaSeleccionadaId = null; document.getElementById('modal-acciones').style.display = 'none'; }
 
-        // --- MODAL RESERVA JUGADOR ---
+        // --- MODAL RESERVA JUGADOR (Update logic to check Dow fijos) ---
         window.abrirModalReservaJugador = function(hora) {
             reservaEnProcesoHora = hora;
             const partes = fechaSeleccionada.split('-');
@@ -279,12 +308,24 @@
             let bloque3 = window.sumarMinutos(hora, 60);
 
             const reservasDelDia = reservasGlobales.filter(r => (r.fecha || fechasValidas[0]) === fechaSeleccionada);
+            const dowNum = window.getDayOfWeekFromDate(fechaSeleccionada);
             let canchasOcupadas = new Set();
             
+            // Direct reservation checks for this date
             reservasDelDia.forEach(r => {
                 let rB1 = r.hora, rB2 = window.sumarMinutos(r.hora, 30), rB3 = window.sumarMinutos(r.hora, 60);
                 if (rB1 === bloque1 || rB1 === bloque2 || rB1 === bloque3 || rB2 === bloque1 || rB2 === bloque2 || rB2 === bloque3 || rB3 === bloque1 || rB3 === bloque2 || rB3 === bloque3) {
                     canchasOcupadas.add(parseInt(r.cancha || "1"));
+                }
+            });
+
+            // Fixed turn checks from other dates blocking this dow and hour blocks
+            reservasGlobales.forEach(r => {
+                if (r.fijo === true && r.fecha !== fechaSeleccionada && window.getDayOfWeekFromDate(r.fecha) === dowNum) {
+                    let rB1 = r.hora, rB2 = window.sumarMinutos(r.hora, 30), rB3 = window.sumarMinutos(r.hora, 60);
+                    if (rB1 === bloque1 || rB1 === bloque2 || rB1 === bloque3 || rB2 === bloque1 || rB2 === bloque2 || rB2 === bloque3 || rB3 === bloque1 || rB3 === bloque2 || rB3 === bloque3) {
+                        canchasOcupadas.add(parseInt(r.cancha || "1"));
+                    }
                 }
             });
 
@@ -301,31 +342,31 @@
         window.cerrarModalReservaJugador = function() { reservaEnProcesoHora = null; document.getElementById('modal-reserva-jugador').style.display = 'none'; }
 
         window.confirmarReservaJugador = async function() {
-            const nombre = document.getElementById('input-nombre-jugador').value;
-            const cancha = document.getElementById('select-cancha-modal').value;
+            const inputNombre = document.getElementById('input-nombre-jugador').value;
+            const selectCanchaModal = document.getElementById('select-cancha-modal').value;
 
-            if (!nombre || nombre.trim() === "") { alert("Por favor, ingresa tu Nombre y Apellido."); return; }
+            if (!inputNombre || inputNombre.trim() === "") { alert("Por favor, ingresa tu Nombre y Apellido."); return; }
 
             try {
                 await addDoc(collection(db, "reservas"), { 
-                    fecha: fechaSeleccionada, hora: reservaEnProcesoHora, cancha: cancha, jugador: nombre, 
-                    fechaRegistro: new Date(), asistencia: false, pagado: false      
+                    fecha: fechaSeleccionada, hora: reservaEnProcesoHora, cancha: selectCanchaModal, jugador: inputNombre, 
+                    fechaRegistro: new Date(), asistencia: false, pagado: false, fijo: false // Add default fijo prop      
                 });
                 alert("¡Reserva guardada con éxito!");
                 window.cerrarModalReservaJugador();
             } catch (error) { alert("Hubo un error de conexión."); }
         }
 
-        // --- CONFIGURACIÓN Y ACCIONES ---
+        // --- CONFIGURACIÓN Y ACCIONES (Update to use Primer/Último turn) ---
         window.guardarConfiguracion = async function() {
-            const primero = document.getElementById('input-primer-turno').value;
-            const ultimo = document.getElementById('input-ultimo-turno').value;
-            const precio = document.getElementById('input-precio').value;
-            const canchas = document.getElementById('input-canchas').value; 
+            const inputPrimero = document.getElementById('input-primer-turno').value;
+            const inputUltimo = document.getElementById('input-ultimo-turno').value;
+            const inputPrecio = document.getElementById('input-precio').value;
+            const inputCanchasNum = document.getElementById('input-canchas').value; 
             
-            if(primero && ultimo && precio && canchas) {
+            if(inputPrimero && inputUltimo && inputPrecio && inputCanchasNum) {
                 try { 
-                    await setDoc(doc(db, "configuracion", "club"), { primerTurno: primero, ultimoTurno: ultimo, precioTurno: precio, canchas: canchas }); 
+                    await setDoc(doc(db, "configuracion", "club"), { primerTurno: inputPrimero, ultimoTurno: inputUltimo, precioTurno: inputPrecio, canchas: inputCanchasNum }); 
                     window.cerrarModalConfig();
                     alert("¡Configuración guardada!"); 
                 } catch (error) { alert("Error al guardar."); }
@@ -336,10 +377,16 @@
         window.accionPago = async function() { if(reservaSeleccionadaId) { await updateDoc(doc(db, "reservas", reservaSeleccionadaId), { pagado: true }); window.cerrarModalAcciones(); } }
         window.accionNoPago = async function() { if(reservaSeleccionadaId) { await updateDoc(doc(db, "reservas", reservaSeleccionadaId), { pagado: false }); window.cerrarModalAcciones(); } }
         window.accionEliminar = async function() { if(reservaSeleccionadaId && confirm("¿Borrar reserva?")) { await deleteDoc(doc(db, "reservas", reservaSeleccionadaId)); window.cerrarModalAcciones(); } }
+        // --- Added: Fixed turn action function ---
+        window.accionFijarTurno = async function() { 
+            if(reservaSeleccionadaId) {
+                await updateDoc(doc(db, "reservas", reservaSeleccionadaId), { fijo: true });
+                window.cerrarModalAcciones();
+            }
+        }
 
         onSnapshot(doc(db, "configuracion", "club"), (documento) => {
             if (documento.exists()) {
-                // Si alguien tenía guardada la vieja configuración de "horaApertura", la usamos como fallback temporal
                 primerTurno = documento.data().primerTurno || documento.data().horaApertura || "08:00";
                 ultimoTurno = documento.data().ultimoTurno || documento.data().horaCierre || "21:30";
                 precioGlobal = documento.data().precioTurno || "15000";
@@ -350,6 +397,7 @@
                 document.getElementById('input-precio').value = precioGlobal;
                 document.getElementById('input-canchas').value = cantidadCanchasGlobal;
             }
+            window.actualizarDropdownCanchas(); 
             renderizarPantallas(); 
         });
 
@@ -359,50 +407,72 @@
             renderizarPantallas(); 
         });
 
-        // --- RENDERIZADO PANTALLAS ---
+        // --- DIBUJADO DE PANTALLAS (Player view and management grid logic with fijo prop) ---
         window.renderizarPantallas = function() {
-            // 1. RENDERIZAR VISTA JUGADOR
+            // 1. RENDERIZAR VISTA JUGADOR (Merge direct reservation logic fine. Just add the fixed turn checks efficiently. Create tool section `arrayBloquesFijos`)
             const contenedorHorarios = document.getElementById('lista-horarios');
             contenedorHorarios.innerHTML = '';
             
-            const reservasDelDia = reservasGlobales.filter(r => (r.fecha || fechasValidas[0]) === fechaSeleccionada);
-            
-            // Filtro con el nuevo sistema de Primer y Último turno
+            const dowNumSelected = window.getDayOfWeekFromDate(fechaSeleccionada);
+            let arrayBloquesFijos = new Set(); // Combination of dow-hora-cancha to block
+
+            reservasGlobales.forEach(r => {
+                if (r.fijo === true) {
+                    const dow = window.getDayOfWeekFromDate(r.fecha);
+                    const horaMin = r.hora;
+                    const canchaIdx = r.cancha || "1";
+                    arrayBloquesFijos.add(`${dow}-${horaMin}-${canchaIdx}`);
+                    arrayBloquesFijos.add(`${dow}-${window.sumarMinutos(horaMin, 30)}-${canchaIdx}`);
+                    arrayBloquesFijos.add(`${dow}-${window.sumarMinutos(horaMin, 60)}-${canchaIdx}`);
+                }
+            });
+
+            const selectCanchaJugador = document.getElementById('select-cancha-jugador');
+            const canchaVistaJugador = selectCanchaJugador ? selectCanchaJugador.value : "1";
+            let bloquesOcupadosJugador = [];
+            reservasGlobales.forEach(r => {
+                if ((r.fecha || fechasValidas[0]) === fechaSeleccionada && (r.cancha || "1") === canchaVistaJugador) {
+                    bloquesOcupadosJugador.push(r.hora, window.sumarMinutos(r.hora, 30), window.sumarMinutos(r.hora, 60));
+                }
+            });
+
             const horariosFiltrados = horariosBase.filter(h => h >= primerTurno && h <= ultimoTurno);
 
             horariosFiltrados.forEach(hora => {
                 let bloque1 = hora, bloque2 = window.sumarMinutos(hora, 30), bloque3 = window.sumarMinutos(hora, 60);
                 
-                let canchasOcupadas = new Set();
-                reservasDelDia.forEach(r => {
-                    let rB1 = r.hora, rB2 = window.sumarMinutos(r.hora, 30), rB3 = window.sumarMinutos(r.hora, 60);
-                    if (rB1 === bloque1 || rB1 === bloque2 || rB1 === bloque3 || rB2 === bloque1 || rB2 === bloque2 || rB2 === bloque3 || rB3 === bloque1 || rB3 === bloque2 || rB3 === bloque3) {
-                        canchasOcupadas.add(parseInt(r.cancha || "1"));
-                    }
-                });
+                // Direct date reservation logic is fine. Just add fixed turn check. Merged.
+                let directOccupied = bloquesOcupadosJugador.includes(bloque1) || bloquesOcupadosJugador.includes(bloque2) || bloquesOcupadosJugador.includes(bloque3);
+                
+                // Check fixed turn occupation for selected dow and cancha
+                const bloque1Key = `${dowNumSelected}-${hora}-${canchaVistaJugador}`;
+                const bloque2Key = `${dowNumSelected}-${window.sumarMinutos(hora, 30)}-${canchaVistaJugador}`;
+                const bloque3Key = `${dowNumSelected}-${window.sumarMinutos(hora, 60)}-${canchaVistaJugador}`;
+                let fixedOccupied = arrayBloquesFijos.has(bloque1Key) || arrayBloquesFijos.has(bloque2Key) || arrayBloquesFijos.has(bloque3Key);
 
-                let canchasLibres = cantidadCanchasGlobal - canchasOcupadas.size;
+                let minInicio = window.aMinutos(hora);
+                let minCierre = window.aMinutos(horaCierre || "23:30"); // Added safety fallback
+                if (minCierre === 0) minCierre = 1440; 
 
-                if (canchasLibres > 0) {
-                    const div = document.createElement('div'); div.className = 'turno-item';
-                    div.onclick = () => window.abrirModalReservaJugador(hora);
-                    let textoCanchas = canchasLibres === 1 ? "1 libre" : `${canchasLibres} libres`;
-                    div.innerHTML = `<span class="punto-verde"></span><span class="hora">${hora} hs | </span><span class="texto-disponible">Turno 1.5 hs</span><span class="texto-canchas-disp">${textoCanchas}</span>`;
-                    contenedorHorarios.appendChild(div);
+                if (!directOccupied && !fixedOccupied && (minInicio + 90) <= minCierre) {
+                    const divItem = document.createElement('div'); divItem.className = 'turno-item';
+                    divItem.onclick = () => window.reservarCancha(hora);
+                    divItem.innerHTML = `<span class="punto-verde"></span><span class="hora">${hora} hs | </span><span class="texto-disponible">Libre (1.5 hs)</span>`;
+                    contenedorHorarios.appendChild(divItem);
                 }
             });
 
-            // 2. RENDERIZAR VISTA CLUB
+            // 2. RENDERIZAR VISTA CLUB (Management card add pin emoji next to name. Pago buttons gray two-col layout logic. Side-by-side pago buttons gray and manage Dow fijos)
             const contenedorClub = document.getElementById('lista-reservas-club');
             contenedorClub.innerHTML = '';
 
+            const reservasDelDia = reservasGlobales.filter(r => (r.fecha || fechasValidas[0]) === fechaSeleccionada);
             if (reservasDelDia.length === 0) {
                 contenedorClub.innerHTML = '<div class="mensaje-vacio">No hay reservas para este día en ninguna cancha.</div>';
                 return;
             }
 
             let minActual = window.aMinutos(primerTurno);
-            // La grilla visual suma 90 minutos al último turno para que se vea completo el partido
             let minFin = window.aMinutos(ultimoTurno) + 90; 
             if (minFin <= minActual) minFin += 1440; 
 
@@ -429,6 +499,7 @@
                     htmlGrilla += `<div style="height: 40px; ${borderStyle} box-sizing: border-box;"></div>`;
                 }
 
+                // Cards with pin emoji 📌 next to manager name
                 let reservasCancha = reservasDelDia.filter(r => (r.cancha || "1") == c);
                 reservasCancha.forEach(res => {
                     let minRes = window.aMinutos(res.hora);
@@ -440,13 +511,14 @@
                     let extraClass = res.asistencia ? "asistio" : "";
                     let colorTexto = res.asistencia ? "white" : "#171d24";
                     let textoSaldo = res.pagado ? "✅" : "Pend";
+                    let textoFijo = res.fijo === true ? ' 📌' : '';
                     
                     htmlGrilla += `
                         <div class="tarjeta-reserva-grilla ${extraClass}" onclick="window.abrirModal('${res.id}')" 
                              style="position: absolute; top: ${offsetTop}px; left: 4px; right: 4px; height: ${height - 6}px; 
                                     padding: 8px; font-size: 0.85em; overflow: hidden; border-radius: 6px; cursor: pointer; 
                                     box-shadow: 0 4px 6px rgba(0,0,0,0.4); display: flex; flex-direction: column; z-index: 10;">
-                            <span style="font-weight: 900; font-size: 1.1em; color: ${colorTexto}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${res.jugador}</span>
+                            <span style="font-weight: 900; font-size: 1.1em; color: ${colorTexto}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${res.jugador}${textoFijo}</span>
                             <span style="margin-top: 4px; color: ${colorTexto}; opacity: 0.8; font-weight: 700;">📌 ${res.hora} hs</span>
                             <span style="margin-top: auto; font-weight: bold; color: ${colorTexto};">Pago: ${textoSaldo}</span>
                         </div>
