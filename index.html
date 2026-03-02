@@ -29,9 +29,15 @@
         }
         .header-fecha { display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 1.2em; margin-bottom: 15px; }
         .sub-header { display: flex; justify-content: space-between; color: #9ca3af; font-size: 0.9em; padding-bottom: 10px; border-bottom: 1px solid #2c3540; margin-bottom: 10px; }
+        
+        /* Contenedor con scroll para que la lista larga no ocupe toda la pantalla infinita */
+        #lista-horarios { max-height: 500px; overflow-y: auto; padding-right: 5px; }
+        #lista-horarios::-webkit-scrollbar { width: 6px; }
+        #lista-horarios::-webkit-scrollbar-thumb { background: #44505d; border-radius: 4px; }
+
         .turno-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #2c3540; cursor: pointer; transition: 0.2s; }
         .turno-item:hover { background-color: #242c36; }
-        .punto-verde { height: 10px; width: 10px; background-color: #10b981; border-radius: 50%; margin-right: 15px; }
+        .punto-verde { height: 10px; width: 10px; background-color: #10b981; border-radius: 50%; margin-right: 15px; min-width: 10px; }
         .hora { font-weight: bold; margin-right: 8px; }
         .texto-disponible { color: #d1d5db; font-size: 0.9em; }
 
@@ -59,7 +65,7 @@
 
     <div id="pantalla-jugador" class="vista-jugador">
         <h2 style="margin-top: 0; margin-bottom: 25px;">Reserva de canchas</h2>
-        <div class="header-fecha"><span style="color:#9ca3af;">&lt;</span><span>Hoy</span><span style="color:#9ca3af;">&gt;</span></div>
+        <div class="header-fecha"><span style="color:#9ca3af; cursor:pointer;">&lt;</span><span>Hoy</span><span style="color:#9ca3af; cursor:pointer;">&gt;</span></div>
         <div class="sub-header"><span>Cancha 1</span><span>Greenpoint</span></div>
         <div id="lista-horarios">Cargando horarios...</div>
     </div>
@@ -71,11 +77,9 @@
     </div>
 
     <script type="module">
-        // 1. Importar herramientas de Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        // 2. Tu configuración exacta
         const firebaseConfig = {
             apiKey: "AIzaSyAMRLDlarJiomWY4IX5c6CR3RFWHqmMu30",
             authDomain: "greenpoint-80ba8.firebaseapp.com",
@@ -85,13 +89,19 @@
             appId: "1:553295919513:web:79d5da1a535e3835e0bb08"
         };
 
-        // 3. Iniciar Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        const horariosBase = ["23:00", "22:00", "21:00", "20:00", "19:00", "18:00"];
+        // --- NUEVO: Generador de horarios cada 30 min (De 08:00 a 23:30) ---
+        const horariosBase = [];
+        for (let h = 8; h <= 23; h++) { 
+            let horaStr = h.toString().padStart(2, '0'); // Añade un 0 a los números de un dígito (ej: 08)
+            horariosBase.push(`${horaStr}:00`);
+            horariosBase.push(`${horaStr}:30`);
+        }
+        horariosBase.reverse(); // Invertimos la lista para que 23:30 quede arriba
+        // ------------------------------------------------------------------
 
-        // Función para cambiar pantallas
         window.cambiarVista = function(vista) {
             document.getElementById('pantalla-jugador').style.display = vista === 'jugador' ? 'block' : 'none';
             document.getElementById('pantalla-club').style.display = vista === 'club' ? 'block' : 'none';
@@ -99,7 +109,6 @@
             document.getElementById('btn-club').classList.toggle('activo', vista === 'club');
         }
 
-        // Función para enviar datos a la base de datos
         window.reservarCancha = async function(hora) {
             const nombre = prompt(`Vas a reservar a las ${hora} hs.\nPor favor, ingresa tu Nombre y Apellido:`);
             
@@ -118,7 +127,6 @@
             }
         }
 
-        // 4. ESCUCHAR LA BASE DE DATOS EN TIEMPO REAL
         onSnapshot(collection(db, "reservas"), (snapshot) => {
             const reservas = [];
             snapshot.forEach((doc) => reservas.push(doc.data()));
@@ -131,7 +139,6 @@
 
             const horasOcupadas = reservas.map(r => r.hora);
 
-            // Dibujar lista de jugador (solo los libres)
             horariosBase.forEach(hora => {
                 if (!horasOcupadas.includes(hora)) {
                     const div = document.createElement('div');
@@ -142,12 +149,10 @@
                 }
             });
 
-            // Dibujar panel del club (tarjetas naranjas)
             if (reservas.length === 0) {
                 contenedorClub.innerHTML = '<div class="mensaje-vacio">Aún no hay reservas hoy.</div>';
             } else {
-                // Ordenar por hora
-                reservas.sort((a, b) => a.hora.localeCompare(b.hora));
+                reservas.sort((a, b) => b.hora.localeCompare(a.hora)); // Ordenamos las tarjetas también de mayor a menor
                 reservas.forEach(reserva => {
                     const tarjeta = document.createElement('div');
                     tarjeta.className = 'tarjeta-reserva';
