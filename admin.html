@@ -107,16 +107,14 @@
             <h3 style="margin: 0; margin-bottom: 5px;">Gestionar Turno</h3>
             
             <button class="btn-modal" style="background-color: #3b82f6;" onclick="window.accionAsistencia()">✔️ Confirmar Asistencia</button>
-            
             <button class="btn-modal" id="btn-toggle-fijo" style="background-color: #4b5563;" onclick="window.accionFijarTurno()">📌 Fijar Turno</button>
             
-            <div style="display: flex;">
-                <button class="btn-modal" style="background-color: #10b981; flex: 1; border-radius: 6px 0 0 6px;" onclick="window.accionPago()">✅ Pagado</button>
-                <button class="btn-modal" style="background-color: #f59e0b; flex: 1; border-radius: 0 6px 6px 0;" onclick="window.accionNoPago()">❌ Pendiente</button>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-modal" style="background-color: #10b981; flex: 1;" onclick="window.accionPago()">✅ Pagado</button>
+                <button class="btn-modal" style="background-color: #f59e0b; flex: 1;" onclick="window.accionNoPago()">❌ Pendiente</button>
             </div>
             
             <button class="btn-modal" style="background-color: #ef4444;" onclick="window.accionEliminar()">🗑️ Eliminar Reserva</button>
-            
             <button class="btn-modal" style="background-color: #4b5563;" onclick="window.cerrarModalAcciones()">Cancelar</button>
         </div>
     </div>
@@ -167,7 +165,7 @@
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // LISTA DE PERMISOS: Edita estos correos para que funcionen con los tuyos
+                // LISTA DE PERMISOS
                 const permisos = {
                     "admin@greenpoint.com": "greenpoint",
                     "admin@padelpro.com": "padelpro",
@@ -195,7 +193,7 @@
         let reservasGlobales = [], reservaSeleccionadaId = null, reservaEnProcesoHora = null;
 
         window.aMinutos = (hStr) => { let [h, m] = hStr.split(':').map(Number); return (h * 60) + m; }
-        window.sumarMinutos = (hStr, mAdd) => { let [h, m] = hStr.split(':').map(Number); let t = (h * 60) + m + mAdd; return `${Math.floor(t / 60).toString().padStart(2,'0')}:${(t % 60).toString().padStart(2,'0')}`; }
+        window.sumarMinutos = (hStr, mAdd) => { let [h, m] = hStr.split(':').map(Number); let t = (h * 60) + m + mAdd; return `${(Math.floor(t / 60)%24).toString().padStart(2,'0')}:${(t % 60).toString().padStart(2,'0')}`; }
         window.getDayOfWeek = (dStr) => new Date(dStr.split('-')[0], dStr.split('-')[1]-1, dStr.split('-')[2]).getDay();
 
         function iniciarSistemaAdmin() {
@@ -253,8 +251,7 @@
                 resCancha.forEach(res => { for(let b=0; b < (res.duracion||90)/30; b++) bloqueOcupado.add(window.sumarMinutos(res.hora, b*30)); });
 
                 for (let m = minActual; m < minFin; m += 30) {
-                    // SE SOLUCIONÓ EL BUG DEL CLIC EN LA GRILLA
-                    let horaFmt = `${(Math.floor(m/60)).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`;
+                    let horaFmt = `${(Math.floor(m/60)%24).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`;
                     let extra = !bloqueOcupado.has(horaFmt) ? `class="celda-vacia-hover" style="cursor:pointer;" onclick="window.abrirModalReservaAdmin('${horaFmt}', '${c}')"` : ``;
                     html += `<div ${extra} style="height: 40px; border-bottom: 1px ${m%60===0?'dashed rgba(255,255,255,0.05)':'solid #2c3540'}; box-sizing: border-box;"></div>`;
                 }
@@ -301,12 +298,14 @@
         window.accionFijarTurno = async () => { const res = reservasGlobales.find(r => r.id === reservaSeleccionadaId); await updateDoc(doc(db, "clubes", clubID, "reservas", reservaSeleccionadaId), { fijo: !res.fijo }); window.cerrarModalAcciones(); }
 
         window.abrirModalReservaAdmin = (hora, cancha) => {
-            if (window.aMinutos(hora) > window.aMinutos(ultimoTurno)) { alert("Horario fuera de límite."); return; }
+            let minInicio = window.aMinutos(hora), minU = window.aMinutos(ultimoTurno), minP = window.aMinutos(primerTurno);
+            if (minU <= minP) minU += 1440; if (minInicio < minP) minInicio += 1440;
+            if (minInicio > minU) { alert("Horario fuera de límite."); return; }
+
             reservaEnProcesoHora = hora; document.getElementById('reserva-fecha-display').innerText = fechaSeleccionada; 
             
             let hsTexto = duracionGlobal % 60 === 0 ? (duracionGlobal/60) : (duracionGlobal/60).toFixed(1);
             document.getElementById('reserva-hora-display').innerText = `${hora} hs (${hsTexto}h)`;
-            // NUEVO: Agregamos el precio dinámico en la vista Admin también
             document.getElementById('reserva-precio-display').innerText = `$${precioGlobal}`;
             
             const sel = document.getElementById('select-cancha-modal'); sel.innerHTML = `<option value="${cancha}">Cancha ${cancha}</option>`;
