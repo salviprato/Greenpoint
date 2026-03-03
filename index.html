@@ -114,7 +114,14 @@
         window.renderizarPantallas = function() {
             const contenedor = document.getElementById('lista-horarios'); contenedor.innerHTML = '';
             const dowNum = window.getDayOfWeek(fechaSeleccionada);
-            const filtrados = horariosBase.filter(h => h >= primerTurno && h <= ultimoTurno);
+            
+            const filtrados = horariosBase.filter(h => {
+                let minH = window.aMinutos(h), minU = window.aMinutos(ultimoTurno), minP = window.aMinutos(primerTurno);
+                if (minU <= minP) minU += 1440; if (minH < minP) minH += 1440;
+                return minH >= minP && minH <= minU;
+            });
+            filtrados.sort((a,b) => { let mA = window.aMinutos(a); if(mA < window.aMinutos(primerTurno)) mA+=1440; let mB = window.aMinutos(b); if(mB < window.aMinutos(primerTurno)) mB+=1440; return mA - mB; });
+
             const numB = duracionGlobal / 30;
 
             filtrados.forEach(hora => {
@@ -129,11 +136,7 @@
                 });
 
                 let libres = cantidadCanchasGlobal - cOcupadas.size;
-                let minInicio = window.aMinutos(hora);
-                let minCierre = window.aMinutos(ultimoTurno);
-                if (minCierre === 0) minCierre = 1440;
-
-                if (libres > 0 && minInicio <= minCierre) {
+                if (libres > 0) {
                     let div = document.createElement('div'); div.className = 'turno-item'; div.onclick = () => window.abrirModalReserva(hora);
                     let hsTexto = duracionGlobal % 60 === 0 ? (duracionGlobal/60) : (duracionGlobal/60).toFixed(1);
                     div.innerHTML = `<span class="punto-verde"></span><span class="hora">${hora} hs | </span><span class="texto-disponible">Turno ${hsTexto} hs</span><span class="texto-canchas-disp">${libres === 1 ? "1 libre" : libres + " libres"}</span>`;
@@ -143,14 +146,15 @@
         }
 
         window.abrirModalReserva = (hora) => {
-            if (window.aMinutos(hora) > window.aMinutos(ultimoTurno)) { alert("Horario fuera de límite."); return; }
+            let minInicio = window.aMinutos(hora), minU = window.aMinutos(ultimoTurno), minP = window.aMinutos(primerTurno);
+            if (minU <= minP) minU += 1440; if (minInicio < minP) minInicio += 1440;
+            if (minInicio > minU) { alert("Horario fuera de límite."); return; }
+
             reservaEnProcesoHora = hora;
             document.getElementById('reserva-fecha-display').innerText = fechaSeleccionada; 
             
             let hsTexto = duracionGlobal % 60 === 0 ? (duracionGlobal/60) : (duracionGlobal/60).toFixed(1);
             document.getElementById('reserva-hora-display').innerText = `${hora} hs (${hsTexto}h)`;
-            
-            // NUEVO: Agregamos el precio de forma dinámica
             document.getElementById('reserva-precio-display').innerText = `$${precioGlobal}`;
             
             let bn = []; for(let b=0; b < duracionGlobal/30; b++) bn.push(window.sumarMinutos(hora, b * 30));
