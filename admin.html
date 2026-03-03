@@ -40,13 +40,6 @@
         .input-form { padding: 10px; border-radius: 6px; border: 1px solid #44505d; background-color: #171d24; color: white; color-scheme: dark; font-family: inherit; width: 100%; box-sizing: border-box; }
         .btn-modal { padding: 12px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; color: white; font-size: 1em; transition: 0.2s; width: 100%; box-sizing: border-box;}
         
-        .btn-guardar { background-color: #10b981; } .btn-guardar:hover { background-color: #059669; }
-        .btn-asistencia { background-color: #3b82f6; } .btn-asistencia:hover { background-color: #2563eb; }
-        .btn-pago { background-color: #10b981; flex: 1;} .btn-pago:hover { background-color: #059669; }
-        .btn-nopago { background-color: #f59e0b; flex: 1;} .btn-nopago:hover { background-color: #d97706; }
-        .btn-eliminar { background-color: #ef4444; } .btn-eliminar:hover { background-color: #dc2626; }
-        .btn-cerrar { background-color: #4b5563; } .btn-cerrar:hover { background-color: #374151; }
-        
         .scroll-interno::-webkit-scrollbar { width: 6px; } .scroll-interno::-webkit-scrollbar-thumb { background: #44505d; border-radius: 4px; }
     </style>
 </head>
@@ -80,8 +73,8 @@
             <h3 style="margin: 0; margin-bottom: 15px; border-bottom: 1px solid #44505d; padding-bottom: 10px;">⚙️ Configuración del Club</h3>
             <div style="text-align: left; display: flex; flex-direction: column; gap: 15px;">
                 <div style="display: flex; gap: 10px;">
-                    <div style="flex: 1;"><label style="font-size: 0.9em; color: #d1d5db;">Abre / Primer Turno:</label><input type="time" id="input-primer-turno" class="input-form" style="margin-top: 4px;"></div>
-                    <div style="flex: 1;"><label style="font-size: 0.9em; color: #d1d5db;">Cierra / Último Turno:</label><input type="time" id="input-ultimo-turno" class="input-form" style="margin-top: 4px;"></div>
+                    <div style="flex: 1;"><label style="font-size: 0.9em; color: #d1d5db;">Abre:</label><input type="time" id="input-primer-turno" class="input-form" style="margin-top: 4px;"></div>
+                    <div style="flex: 1;"><label style="font-size: 0.9em; color: #d1d5db;">Cierra:</label><input type="time" id="input-ultimo-turno" class="input-form" style="margin-top: 4px;"></div>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <div style="flex: 1;"><label style="font-size: 0.9em; color: #d1d5db;">Precio ($):</label><input type="number" id="input-precio" step="500" class="input-form" style="margin-top: 4px;"></div>
@@ -96,8 +89,8 @@
                     </select>
                 </div>
             </div>
-            <button class="btn-modal btn-guardar" style="margin-top: 20px;" onclick="window.guardarConfiguracion()">Guardar Todo</button>
-            <button class="btn-modal btn-cerrar" style="margin-top: 0;" onclick="window.cerrarModalConfig()">Cancelar</button>
+            <button class="btn-modal" style="background-color: #10b981; margin-top: 20px;" onclick="window.guardarConfiguracion()">Guardar Todo</button>
+            <button class="btn-modal" style="background-color: #4b5563; margin-top: 0;" onclick="window.cerrarModalConfig()">Cancelar</button>
         </div>
     </div>
 
@@ -105,36 +98,43 @@
         <div class="modal-content">
             <h3 style="margin: 0; margin-bottom: 15px; border-bottom: 1px solid #44505d; padding-bottom: 10px;">📊 Métricas de Reservas</h3>
             <div id="contenido-metricas" class="scroll-interno" style="text-align: left; max-height: 350px; overflow-y: auto;"></div>
-            <button class="btn-modal btn-cerrar" style="margin-top: 15px;" onclick="window.cerrarModalMetricas()">Cerrar</button>
+            <button class="btn-modal" style="background-color: #4b5563; margin-top: 15px;" onclick="window.cerrarModalMetricas()">Cerrar</button>
         </div>
     </div>
 
     <div id="modal-acciones" class="modal-overlay">
-        <div class="modal-content">
-            <h3 style="margin: 0; margin-bottom: 10px;">Gestionar Turno</h3>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button class="btn-modal btn-asistencia" onclick="window.accionAsistencia()">✔️ Confirmar Asistencia</button>
-                <button class="btn-modal btn-cerrar" id="btn-toggle-fijo" onclick="window.accionFijarTurno()">📌 Fijar Turno</button>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn-modal btn-pago" onclick="window.accionPago()">✅ Pagado</button>
-                    <button class="btn-modal btn-nopago" onclick="window.accionNoPago()">❌ Pendiente</button>
-                </div>
-                <button class="btn-modal btn-eliminar" onclick="window.accionEliminar()">🗑️ Eliminar Reserva</button>
-                <button class="btn-modal btn-cerrar" onclick="window.cerrarModalAcciones()">Cancelar</button>
+        <div class="modal-content" style="gap: 10px; padding: 20px;">
+            <h3 style="margin: 0; margin-bottom: 5px;">Gestionar Turno</h3>
+            
+            <button class="btn-modal" style="background-color: #3b82f6;" onclick="window.accionAsistencia()">✔️ Confirmar Asistencia</button>
+            
+            <button class="btn-modal" id="btn-toggle-fijo" style="background-color: #4b5563;" onclick="window.accionFijarTurno()">📌 Fijar Turno</button>
+            
+            <div style="display: flex;">
+                <button class="btn-modal" style="background-color: #10b981; flex: 1; border-radius: 6px 0 0 6px;" onclick="window.accionPago()">✅ Pagado</button>
+                <button class="btn-modal" style="background-color: #f59e0b; flex: 1; border-radius: 0 6px 6px 0;" onclick="window.accionNoPago()">❌ Pendiente</button>
             </div>
+            
+            <button class="btn-modal" style="background-color: #ef4444;" onclick="window.accionEliminar()">🗑️ Eliminar Reserva</button>
+            
+            <button class="btn-modal" style="background-color: #4b5563;" onclick="window.cerrarModalAcciones()">Cancelar</button>
         </div>
     </div>
 
     <div id="modal-reserva-admin" class="modal-overlay">
         <div class="modal-content">
-            <h3 style="margin: 0; margin-bottom: 5px;">Agendar Turno Manual</h3>
-            <p style="margin: 0; color: #9ca3af; margin-bottom: 15px;"><strong id="reserva-fecha-display"></strong> | <strong id="reserva-hora-display"></strong></p>
-            <div style="text-align: left; display: flex; flex-direction: column; gap: 15px;">
-                <div><label style="color: #d1d5db;">1. Cancha:</label><select id="select-cancha-modal" class="input-form"></select></div>
-                <div><label style="color: #d1d5db;">2. Jugador:</label><input type="text" id="input-nombre-jugador" class="input-form" placeholder="Ej: Franco Aramayo"></div>
+            <h3 style="margin: 0; margin-bottom: 10px;">Confirmar Reserva</h3>
+            <div style="text-align: center; color: #9ca3af; margin-bottom: 20px; font-size: 0.95em; line-height: 1.6;">
+                Fecha: <strong id="reserva-fecha-display" style="color:white;"></strong><br>
+                Horario: <strong id="reserva-hora-display" style="color:white;"></strong><br>
+                Precio: <strong id="reserva-precio-display" style="color:#10b981; font-size: 1.1em;"></strong>
             </div>
-            <button class="btn-modal btn-guardar" style="margin-top: 20px;" onclick="window.confirmarReservaAdmin()">Guardar Turno</button>
-            <button class="btn-modal btn-cerrar" style="margin-top: 0;" onclick="window.cerrarModalReservaAdmin()">Cancelar</button>
+            <div style="text-align: left; display: flex; flex-direction: column; gap: 15px;">
+                <div><label style="color: #d1d5db; font-weight: bold;">1. Elige tu cancha:</label><select id="select-cancha-modal" class="input-form" style="margin-top: 5px;"></select></div>
+                <div><label style="color: #d1d5db; font-weight: bold;">2. Nombre y Apellido:</label><input type="text" id="input-nombre-jugador" class="input-form" placeholder="Ej: Franco Aramayo" style="margin-top: 5px;"></div>
+            </div>
+            <button class="btn-modal" style="background-color: #10b981; margin-top: 20px;" onclick="window.confirmarReservaAdmin()">Confirmar Reserva</button>
+            <button class="btn-modal" style="background-color: #4b5563; margin-top: 0;" onclick="window.cerrarModalReservaAdmin()">Cancelar</button>
         </div>
     </div>
 
@@ -167,11 +167,11 @@
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // AQUÍ AGREGAS LOS CORREOS Y SUS CLUBES PERMITIDOS
+                // LISTA DE PERMISOS: Edita estos correos para que funcionen con los tuyos
                 const permisos = {
                     "admin@greenpoint.com": "greenpoint",
                     "admin@padelpro.com": "padelpro",
-                    "salviprato@gmail.com": "superadmin" // Reemplaza con tu correo personal real
+                    "tu_correo@gmail.com": "superadmin" 
                 };
 
                 const clubPermitido = permisos[user.email];
@@ -253,7 +253,8 @@
                 resCancha.forEach(res => { for(let b=0; b < (res.duracion||90)/30; b++) bloqueOcupado.add(window.sumarMinutos(res.hora, b*30)); });
 
                 for (let m = minActual; m < minFin; m += 30) {
-                    let horaFmt = `${(Math.floor(m/60)%24).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`;
+                    // SE SOLUCIONÓ EL BUG DEL CLIC EN LA GRILLA
+                    let horaFmt = `${(Math.floor(m/60)).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`;
                     let extra = !bloqueOcupado.has(horaFmt) ? `class="celda-vacia-hover" style="cursor:pointer;" onclick="window.abrirModalReservaAdmin('${horaFmt}', '${c}')"` : ``;
                     html += `<div ${extra} style="height: 40px; border-bottom: 1px ${m%60===0?'dashed rgba(255,255,255,0.05)':'solid #2c3540'}; box-sizing: border-box;"></div>`;
                 }
@@ -296,12 +297,18 @@
         window.accionAsistencia = async () => { await updateDoc(doc(db, "clubes", clubID, "reservas", reservaSeleccionadaId), { asistencia: true }); window.cerrarModalAcciones(); }
         window.accionPago = async () => { await updateDoc(doc(db, "clubes", clubID, "reservas", reservaSeleccionadaId), { pagado: true }); window.cerrarModalAcciones(); }
         window.accionNoPago = async () => { await updateDoc(doc(db, "clubes", clubID, "reservas", reservaSeleccionadaId), { pagado: false }); window.cerrarModalAcciones(); }
-        window.accionEliminar = async () => { if(confirm("¿Estás seguro de borrar este turno?")) { await deleteDoc(doc(db, "clubes", clubID, "reservas", reservaSeleccionadaId)); window.cerrarModalAcciones(); } }
+        window.accionEliminar = async () => { if(confirm("¿Estás seguro de borrar esta reserva?")) { await deleteDoc(doc(db, "clubes", clubID, "reservas", reservaSeleccionadaId)); window.cerrarModalAcciones(); } }
         window.accionFijarTurno = async () => { const res = reservasGlobales.find(r => r.id === reservaSeleccionadaId); await updateDoc(doc(db, "clubes", clubID, "reservas", reservaSeleccionadaId), { fijo: !res.fijo }); window.cerrarModalAcciones(); }
 
         window.abrirModalReservaAdmin = (hora, cancha) => {
             if (window.aMinutos(hora) > window.aMinutos(ultimoTurno)) { alert("Horario fuera de límite."); return; }
-            reservaEnProcesoHora = hora; document.getElementById('reserva-fecha-display').innerText = fechaSeleccionada; document.getElementById('reserva-hora-display').innerText = `${hora} hs`;
+            reservaEnProcesoHora = hora; document.getElementById('reserva-fecha-display').innerText = fechaSeleccionada; 
+            
+            let hsTexto = duracionGlobal % 60 === 0 ? (duracionGlobal/60) : (duracionGlobal/60).toFixed(1);
+            document.getElementById('reserva-hora-display').innerText = `${hora} hs (${hsTexto}h)`;
+            // NUEVO: Agregamos el precio dinámico en la vista Admin también
+            document.getElementById('reserva-precio-display').innerText = `$${precioGlobal}`;
+            
             const sel = document.getElementById('select-cancha-modal'); sel.innerHTML = `<option value="${cancha}">Cancha ${cancha}</option>`;
             document.getElementById('input-nombre-jugador').value = ""; document.getElementById('modal-reserva-admin').style.display = 'flex';
         }
