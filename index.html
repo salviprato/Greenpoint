@@ -90,7 +90,7 @@
         }
         
         #modal-finanzas .modal-content, #modal-acciones .modal-content {
-            max-width: 550px; max-height: 90vh; overflow-y: auto;
+            max-width: 580px; max-height: 90vh; overflow-y: auto;
         }
 
         .input-form {
@@ -102,6 +102,7 @@
         .btn-fijar { background-color: #10b981; } .btn-fijar:hover { background-color: #059669; }
         .btn-guardar { background-color: #10b981; } .btn-guardar:hover { background-color: #059669; }
         .btn-gasto { background-color: #ef4444; } .btn-gasto:hover { background-color: #dc2626; }
+        .btn-balance { background-color: #f59e0b; color: #171d24; } .btn-balance:hover { background-color: #d97706; }
         .btn-eliminar { background-color: #ef4444; } .btn-eliminar:hover { background-color: #dc2626; }
         .btn-whatsapp { background-color: #25d366; } .btn-whatsapp:hover { background-color: #1ebd57; }
         .btn-excepcion { background-color: #f59e0b; color: #171d24;} .btn-excepcion:hover { background-color: #d97706; }
@@ -202,7 +203,7 @@
 
                 <hr style="border: 0; border-top: 1px solid #44505d; margin: 25px 0;">
 
-                <h4 style="margin: 0 0 10px 0; color: #ef4444;">💸 Gastos Externos del Club</h4>
+                <h4 style="margin: 0 0 10px 0; color: #ef4444;">💸 Gastos Externos</h4>
                 <div style="display: flex; gap: 8px; margin-bottom: 10px;">
                     <input type="text" id="gasto-titulo" class="input-form" placeholder="Título (Ej: Luz, Pelotas)" style="flex: 1;">
                     <input type="number" id="gasto-importe" class="input-form" placeholder="Importe Gastado $" style="flex: 1;">
@@ -224,20 +225,51 @@
                 <hr style="border: 0; border-top: 1px solid #44505d; margin: 25px 0;">
 
                 <h4 style="margin: 0 0 10px 0; color: #10b981;">📈 Ingresos y Ventas</h4>
-                <p style="font-size: 0.85em; color: #9ca3af; margin-top: 0;">Aquí se suman automáticamente los pagos de los turnos. Puedes agregar ventas extra de mostrador a mano.</p>
+                <p style="font-size: 0.85em; color: #9ca3af; margin-top: 0;">Los pagos de los turnos aparecen solos. Usa esto para ventas de mostrador extra.</p>
                 <div style="display: flex; gap: 8px; margin-bottom: 15px;">
                     <input type="text" id="ingreso-titulo" class="input-form" placeholder="Detalle (Ej: Venta remera)" style="flex: 2;">
                     <input type="number" id="ingreso-efectivo" class="input-form" placeholder="Efectivo $" style="flex: 1;">
                     <input type="number" id="ingreso-transferencia" class="input-form" placeholder="Transf. $" style="flex: 1;">
                 </div>
-                <button class="btn-modal btn-guardar" onclick="window.agregarIngreso()" style="margin-bottom: 20px;">Registrar Venta de Mostrador</button>
+                <button class="btn-modal btn-guardar" onclick="window.agregarIngreso()" style="margin-bottom: 20px;">Registrar Venta Extra</button>
 
-                <div class="scroll-interno" style="max-height: 200px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
+                <div class="scroll-interno" style="max-height: 150px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
                     <table>
                         <thead>
                             <tr><th>Detalle</th><th style="text-align: right;">Efectivo</th><th style="text-align: right;">Transf.</th><th style="text-align: center;">Borrar</th></tr>
                         </thead>
                         <tbody id="tabla-ingresos"></tbody>
+                    </table>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #44505d; margin: 25px 0;">
+
+                <h4 style="margin: 0 0 10px 0; color: #f59e0b;">📊 Balance de Ganancias (Cierres)</h4>
+                <p style="font-size: 0.85em; color: #9ca3af; margin-top: 0;">Fórmula: (Ganancia de Turnos + Ventas manuales) - Gastos Externos.</p>
+                
+                <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                    <input type="text" id="balance-titulo" class="input-form" placeholder="Nombre (Ej: Marzo)" style="flex: 2;">
+                    <select id="balance-periodo" class="input-form" style="flex: 2;">
+                        <option value="" disabled selected>Período...</option>
+                        <option value="7">Última Semana (7 días)</option>
+                        <option value="30">Último Mes (30 días)</option>
+                        <option value="todo">Todo el historial</option>
+                    </select>
+                </div>
+                <button class="btn-modal btn-balance" onclick="window.generarBalance()" style="margin-bottom: 20px;">Calcular y Guardar Cierre</button>
+
+                <div class="scroll-interno" style="max-height: 200px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Cierre / Período</th>
+                                <th style="text-align: right;">Ingresos</th>
+                                <th style="text-align: right;">Gastos</th>
+                                <th style="text-align: right; color: #10b981;">Neta</th>
+                                <th style="text-align: center;">Borrar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-balances"></tbody>
                     </table>
                 </div>
 
@@ -418,9 +450,12 @@
         let inventarioGlobal = []; 
         let gastosGlobal = []; 
         let ingresosGlobal = []; 
+        let balancesGlobal = []; // Array para los cierres de caja guardados
+        
         let reservaSeleccionadaId = null; 
         let reservaEnProcesoHora = null;
 
+        // --- FUNCIONES ÚTILES ---
         window.aMinutos = function(horaStr) { let [h, m] = horaStr.split(':').map(Number); return (h * 60) + m; }
         window.sumarMinutos = function(horaStr, minutosAñadir) {
             let [h, m] = horaStr.split(':').map(Number); let total = (h * 60) + m + minutosAñadir;
@@ -432,6 +467,12 @@
             const f = new Date(partes[0], partes[1] - 1, partes[2]);
             return f.getDay(); 
         }
+        function getDateFromFirebase(field) {
+            if (!field) return new Date();
+            if (field.toDate) return field.toDate();
+            if (field.seconds) return new Date(field.seconds * 1000);
+            return new Date(field); 
+        }
 
         window.cambiarVista = function(vista) {
             document.getElementById('pantalla-jugador').style.display = vista === 'jugador' ? 'block' : 'none';
@@ -440,7 +481,7 @@
             document.getElementById('btn-club').classList.toggle('activo', vista === 'club');
         }
 
-        // --- INVENTARIO, GASTOS E INGRESOS ---
+        // --- MODAL INVENTARIO, GASTOS E INGRESOS ---
         window.abrirModalFinanzas = function() { document.getElementById('modal-finanzas').style.display = 'flex'; }
         window.cerrarModalFinanzas = function() { document.getElementById('modal-finanzas').style.display = 'none'; }
 
@@ -493,7 +534,7 @@
             });
         }
 
-        // 3. Ingresos Manuales
+        // 3. Ingresos Manuales + Turnos
         window.agregarIngreso = async function() {
             const titulo = document.getElementById('ingreso-titulo').value.trim();
             const efe = parseFloat(document.getElementById('ingreso-efectivo').value) || 0;
@@ -511,40 +552,120 @@
             tbody.innerHTML = '';
 
             let listaCombinada = [];
-            // Agrega ingresos por turnos
             reservasGlobales.forEach(res => {
                 let efe = parseFloat(res.pagoEfectivo) || 0;
                 let trans = parseFloat(res.pagoTransferencia) || 0;
                 if(efe > 0 || trans > 0) {
                     listaCombinada.push({
                         id: res.id, tipo: 'reserva', titulo: `Turno: ${res.jugador} (${res.fecha})`,
-                        efectivo: efe, transferencia: trans, fechaObj: res.fechaRegistro ? (res.fechaRegistro.seconds || 0) : 0
+                        efectivo: efe, transferencia: trans, fechaObj: getDateFromFirebase(res.fechaRegistro).getTime()
                     });
                 }
             });
-            // Agrega ventas manuales
             ingresosGlobal.forEach(ing => {
                 listaCombinada.push({
                     id: ing.id, tipo: 'manual', titulo: ing.titulo,
                     efectivo: parseFloat(ing.efectivo) || 0, transferencia: parseFloat(ing.transferencia) || 0,
-                    fechaObj: ing.fechaRegistro ? (ing.fechaRegistro.seconds || 0) : 0
+                    fechaObj: getDateFromFirebase(ing.fechaRegistro).getTime()
                 });
             });
 
             if(listaCombinada.length === 0) { tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #9ca3af; padding: 15px;">No hay ingresos registrados</td></tr>'; return; }
 
-            // Ordenar descendentemente
             listaCombinada.sort((a, b) => b.fechaObj - a.fechaObj);
 
             listaCombinada.forEach(item => {
                 let btnHtml = item.tipo === 'manual' 
-                    ? `<button onclick="window.eliminarIngreso('${item.id}')" style="background:none;border:none;cursor:pointer;font-size:1.1em;" title="Borrar Ingreso">🗑️</button>`
+                    ? `<button onclick="window.eliminarIngreso('${item.id}')" style="background:none;border:none;cursor:pointer;font-size:1.1em;" title="Borrar">🗑️</button>`
                     : `<span style="color:#9ca3af; font-size:0.8em; border: 1px solid #44505d; padding: 2px 5px; border-radius: 4px;">Turno</span>`;
                 
                 tbody.innerHTML += `<tr><td><strong>${item.titulo}</strong></td>
                     <td style="text-align: right; color: #10b981;">$${item.efectivo}</td>
                     <td style="text-align: right; color: #3b82f6;">$${item.transferencia}</td>
                     <td style="text-align: center;">${btnHtml}</td></tr>`;
+            });
+        }
+
+        // 4. BALANCES Y CIERRES
+        window.generarBalance = async function() {
+            const titulo = document.getElementById('balance-titulo').value.trim();
+            const periodoDias = document.getElementById('balance-periodo').value;
+            
+            if(!titulo || !periodoDias) { alert("Completa Nombre del Balance y selecciona el Período."); return; }
+
+            let fechaLimite = new Date();
+            if (periodoDias !== "todo") {
+                fechaLimite.setDate(fechaLimite.getDate() - parseInt(periodoDias));
+            } else {
+                fechaLimite = new Date(2000, 0, 1); 
+            }
+
+            let totalIngresos = 0;
+            let totalGastos = 0;
+
+            reservasGlobales.forEach(res => {
+                let fr = getDateFromFirebase(res.fechaRegistro);
+                if(fr >= fechaLimite) {
+                    totalIngresos += (parseFloat(res.pagoEfectivo) || 0) + (parseFloat(res.pagoTransferencia) || 0);
+                }
+            });
+
+            ingresosGlobal.forEach(ing => {
+                let fr = getDateFromFirebase(ing.fechaRegistro);
+                if(fr >= fechaLimite) {
+                    totalIngresos += (parseFloat(ing.efectivo) || 0) + (parseFloat(ing.transferencia) || 0);
+                }
+            });
+
+            gastosGlobal.forEach(gasto => {
+                let fr = getDateFromFirebase(gasto.fechaRegistro);
+                if(fr >= fechaLimite) {
+                    totalGastos += parseFloat(gasto.importe) || 0;
+                }
+            });
+
+            let gananciaNeta = totalIngresos - totalGastos;
+            let textoPeriodo = periodoDias === "todo" ? "Historial Completo" : `Últimos ${periodoDias} días`;
+
+            try {
+                await addDoc(collection(db, "balances"), {
+                    titulo: titulo,
+                    periodoTexto: textoPeriodo,
+                    ingresos: totalIngresos,
+                    gastos: totalGastos,
+                    ganancia: gananciaNeta,
+                    fechaCreacion: serverTimestamp()
+                });
+                document.getElementById('balance-titulo').value = '';
+                document.getElementById('balance-periodo').value = '';
+            } catch (e) { alert("Error al guardar el balance."); }
+        }
+
+        window.eliminarBalance = async function(id) {
+            if(confirm("¿Seguro que deseas borrar este registro de balance?")) await deleteDoc(doc(db, "balances", id));
+        }
+
+        function renderizarBalances() {
+            const tbody = document.getElementById('tabla-balances');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            
+            if(balancesGlobal.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #9ca3af; padding: 15px;">No hay balances calculados aún.</td></tr>';
+                return;
+            }
+
+            balancesGlobal.sort((a,b) => (b.fechaCreacion?.seconds || 0) - (a.fechaCreacion?.seconds || 0)).forEach(bal => {
+                let colorGanancia = bal.ganancia >= 0 ? "#10b981" : "#ef4444";
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${bal.titulo}</strong><br><small style="color:#9ca3af;">(${bal.periodoTexto})</small></td>
+                        <td style="text-align: right; color: #3b82f6;">$${bal.ingresos}</td>
+                        <td style="text-align: right; color: #ef4444;">$${bal.gastos}</td>
+                        <td style="text-align: right; font-weight: bold; color: ${colorGanancia};">$${bal.ganancia}</td>
+                        <td style="text-align: center;"><button onclick="window.eliminarBalance('${bal.id}')" style="background:none;border:none;cursor:pointer;font-size:1.1em;">🗑️</button></td>
+                    </tr>
+                `;
             });
         }
 
@@ -560,6 +681,10 @@
         onSnapshot(collection(db, "ingresos"), (snapshot) => {
             ingresosGlobal = []; snapshot.forEach((doc) => ingresosGlobal.push({ id: doc.id, ...doc.data() }));
             renderizarIngresos(); 
+        });
+        onSnapshot(collection(db, "balances"), (snapshot) => {
+            balancesGlobal = []; snapshot.forEach((doc) => balancesGlobal.push({ id: doc.id, ...doc.data() }));
+            renderizarBalances(); 
         });
 
         // --- GESTIÓN DE TURNOS (PUNTO DE VENTA) ---
@@ -832,7 +957,7 @@
             reservasGlobales = [];
             snapshot.forEach((doc) => reservasGlobales.push({ id: doc.id, ...doc.data() }));
             renderizarPantallas(); 
-            renderizarIngresos(); // Actualizar tabla de ingresos con los pagos de las reservas
+            renderizarIngresos(); 
             if(reservaSeleccionadaId) renderizarModalTurnoAcciones(); 
         });
 
