@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reserva de Canchas Greenpoint</title>
+    <title>Reserva de Canchas Orbit</title>
     <style>
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -75,7 +75,6 @@
             background-color: #f6a74b; color: #171d24; border-left: 5px solid #d97706; transition: 0.1s;
         }
         .tarjeta-reserva-grilla:hover { filter: brightness(1.1); }
-        .tarjeta-reserva-grilla.asistio { background-color: #3b82f6; color: #ffffff; border-left: 5px solid #1d4ed8; }
         
         .celda-vacia-hover { transition: background-color 0.1s; }
         .celda-vacia-hover:hover { background-color: rgba(59, 130, 246, 0.15); }
@@ -99,10 +98,8 @@
         
         .btn-fijar { background-color: #10b981; } .btn-fijar:hover { background-color: #059669; }
         .btn-guardar { background-color: #10b981; } .btn-guardar:hover { background-color: #059669; }
-        .btn-asistencia { background-color: #3b82f6; } .btn-asistencia:hover { background-color: #2563eb; }
         .btn-eliminar { background-color: #ef4444; } .btn-eliminar:hover { background-color: #dc2626; }
         .btn-cerrar { background-color: #4b5563; margin-top: 10px;}
-        .btn-gray-two-col { background-color: #4b5563; flex: 1; } .btn-gray-two-col:hover { background-color: #444c56; }
 
         .scroll-interno::-webkit-scrollbar { width: 6px; }
         .scroll-interno::-webkit-scrollbar-thumb { background: #44505d; border-radius: 4px; }
@@ -120,7 +117,7 @@
         <div id="calendario-jugador" class="calendario-strip"></div>
         <div class="sub-header">
             <span>Horarios Disponibles</span>
-            <span>Greenpoint</span>
+            <span>Orbit</span>
         </div>
         <div id="lista-horarios">Cargando horarios...</div>
     </div>
@@ -199,12 +196,7 @@
         <div class="modal-content">
             <h3 style="margin: 0; margin-bottom: 10px;">Gestionar Turno</h3>
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button class="btn-modal btn-asistencia" onclick="window.accionAsistencia()">✔️ Confirmar Asistencia</button>
                 <button class="btn-modal btn-fijar" id="btn-toggle-fijo" onclick="window.accionFijarTurno()">📌 Fijar Turno</button>
-                <div style="display: flex; gap: 10px; justify-content: space-between;">
-                    <button class="btn-modal btn-gray-two-col" onclick="window.accionPago()">✅ Pagado</button>
-                    <button class="btn-modal btn-gray-two-col" onclick="window.accionNoPago()">❌ Pendiente</button>
-                </div>
                 <button class="btn-modal btn-eliminar" onclick="window.accionEliminar()">🗑️ Eliminar Reserva</button>
                 <button class="btn-modal btn-cerrar" onclick="window.cerrarModalAcciones()">Cancelar</button>
             </div>
@@ -215,11 +207,13 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+        // ATENCIÓN: Se cambió greenpoint-80ba8 por orbit-80ba8 en la configuración.
+        // Si tu base de datos original era greenpoint, debes volver a ponerlo aquí abajo.
         const firebaseConfig = {
             apiKey: "AIzaSyAMRLDlarJiomWY4IX5c6CR3RFWHqmMu30",
-            authDomain: "greenpoint-80ba8.firebaseapp.com",
-            projectId: "greenpoint-80ba8",
-            storageBucket: "greenpoint-80ba8.firebasestorage.app",
+            authDomain: "orbit-80ba8.firebaseapp.com",
+            projectId: "orbit-80ba8",
+            storageBucket: "orbit-80ba8.firebasestorage.app",
             messagingSenderId: "553295919513",
             appId: "1:553295919513:web:79d5da1a535e3835e0bb08"
         };
@@ -495,9 +489,6 @@
             }
         }
 
-        window.accionAsistencia = async function() { if(reservaSeleccionadaId) { await updateDoc(doc(db, "reservas", reservaSeleccionadaId), { asistencia: true }); window.cerrarModalAcciones(); } }
-        window.accionPago = async function() { if(reservaSeleccionadaId) { await updateDoc(doc(db, "reservas", reservaSeleccionadaId), { pagado: true }); window.cerrarModalAcciones(); } }
-        window.accionNoPago = async function() { if(reservaSeleccionadaId) { await updateDoc(doc(db, "reservas", reservaSeleccionadaId), { pagado: false }); window.cerrarModalAcciones(); } }
         window.accionEliminar = async function() { if(reservaSeleccionadaId && confirm("¿Estás seguro de borrar esta reserva?")) { await deleteDoc(doc(db, "reservas", reservaSeleccionadaId)); window.cerrarModalAcciones(); } }
         
         window.accionFijarTurno = async function() { 
@@ -643,20 +634,16 @@
                     let resDur = res.duracion || 90;
                     let height = (resDur / 30) * 40; 
 
-                    let extraClass = res.asistencia ? "asistio" : "";
-                    let colorTexto = res.asistencia ? "white" : "#171d24";
-                    let textoSaldo = res.pagado ? "✅" : "Pend";
                     let textoFijo = res.fijo === true ? ' 📌' : '';
                     
-                    // LÍNEA MODIFICADA: Se quitó el 📌 que estaba al lado de ${res.hora} hs
+                    // Modificación: Se eliminaron las lógicas de colorTexto, extraClass y textoSaldo
                     htmlGrilla += `
-                        <div class="tarjeta-reserva-grilla ${extraClass}" onclick="window.abrirModal('${res.id}')" 
+                        <div class="tarjeta-reserva-grilla" onclick="window.abrirModal('${res.id}')" 
                              style="position: absolute; top: ${offsetTop}px; left: 4px; right: 4px; height: ${height - 6}px; 
                                     padding: 8px; font-size: 0.85em; overflow: hidden; border-radius: 6px; cursor: pointer; 
                                     box-shadow: 0 4px 6px rgba(0,0,0,0.4); display: flex; flex-direction: column; z-index: 10;">
-                            <span style="font-weight: 900; font-size: 1.1em; color: ${colorTexto}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${res.jugador}${textoFijo}</span>
-                            <span style="margin-top: 4px; color: ${colorTexto}; opacity: 0.8; font-weight: 700;">${res.hora} hs</span>
-                            <span style="margin-top: auto; font-weight: bold; color: ${colorTexto};">Pago: ${textoSaldo}</span>
+                            <span style="font-weight: 900; font-size: 1.1em; color: #171d24; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${res.jugador}${textoFijo}</span>
+                            <span style="margin-top: 4px; color: #171d24; opacity: 0.8; font-weight: 700;">${res.hora} hs</span>
                         </div>
                     `;
                 });
