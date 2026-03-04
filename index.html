@@ -112,13 +112,13 @@
         /* Colores botones */
         .btn-fijar { background-color: #10b981; } .btn-fijar:hover { background-color: #059669; }
         .btn-guardar { background-color: #10b981; } .btn-guardar:hover { background-color: #059669; }
-        .btn-gasto { background-color: #ef4444; } .btn-gasto:hover { background-color: #dc2626; }
-        .btn-balance { background-color: #f59e0b; color: #171d24; } .btn-balance:hover { background-color: #d97706; }
+        .btn-gasto { background-color: #4b5563; } .btn-gasto:hover { background-color: #374151; } /* Gris neutro */
+        .btn-balance { background-color: #4b5563; color: #ffffff; } .btn-balance:hover { background-color: #374151; } /* Gris neutro */
         .btn-eliminar { background-color: #ef4444; } .btn-eliminar:hover { background-color: #dc2626; }
         .btn-whatsapp { background-color: #25d366; } .btn-whatsapp:hover { background-color: #1ebd57; }
         .btn-excepcion { background-color: #f59e0b; color: #171d24;} .btn-excepcion:hover { background-color: #d97706; }
         .btn-cerrar { background-color: #4b5563; margin-top: 10px;}
-        .btn-stock { background-color: #3b82f6; padding: 4px 8px; font-size: 0.8em; } .btn-stock:hover { background-color: #2563eb; }
+        .btn-stock { background-color: #4b5563; padding: 4px 8px; font-size: 0.8em; } .btn-stock:hover { background-color: #374151; } /* Gris neutro */
 
         .scroll-interno::-webkit-scrollbar { width: 6px; }
         .scroll-interno::-webkit-scrollbar-thumb { background: #44505d; border-radius: 4px; }
@@ -134,10 +134,16 @@
         .header-acordeon { 
             display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; 
             background: #242c36; cursor: pointer; font-weight: bold; font-size: 1.05em; user-select: none;
+            color: #d1d5db; /* Blanco crudo/gris claro para todos los títulos */
         }
         .header-acordeon:hover { background: #2c3540; }
         .contenido-acordeon { padding: 15px; display: none; }
         .contenido-acordeon.abierto { display: block; border-top: 1px solid #2c3540;}
+
+        /* Clases de texto neutrales para finanzas */
+        .text-neutral-main { color: #ffffff; }
+        .text-neutral-sub { color: #9ca3af; }
+        .text-neutral-bold { color: #d1d5db; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -197,12 +203,12 @@
 
     <div id="modal-finanzas" class="modal-overlay">
         <div class="modal-content scroll-interno"> 
-            <h3 style="margin: 0; margin-bottom: 15px; border-bottom: 1px solid #44505d; padding-bottom: 10px;">💰 Finanzas e Inventario</h3>
+            <h3 style="margin: 0; margin-bottom: 15px; border-bottom: 1px solid #44505d; padding-bottom: 10px;">Finanzas e Inventario</h3>
             
             <div style="text-align: left;">
                 
                 <div class="seccion-acordeon">
-                    <div class="header-acordeon" onclick="window.toggleAcordeon('ac-inv')" style="color: #3b82f6;">
+                    <div class="header-acordeon" onclick="window.toggleAcordeon('ac-inv')">
                         <span>📦 Inventario y Stock</span> <span id="flecha-ac-inv">🔽</span>
                     </div>
                     <div id="ac-inv" class="contenido-acordeon">
@@ -220,7 +226,7 @@
                             <input type="number" id="inv-costo" class="input-form" placeholder="Costo Unit. $" style="flex: 1;" min="0">
                             <input type="number" id="inv-precio" class="input-form" placeholder="Precio Venta $" style="flex: 1;" min="0">
                         </div>
-                        <button class="btn-modal btn-guardar" onclick="window.agregarInventario()" style="margin-bottom: 20px;">Añadir al Inventario</button>
+                        <button class="btn-modal btn-gasto" onclick="window.agregarInventario()" style="margin-bottom: 20px;">Añadir al Inventario</button>
                         
                         <div class="scroll-interno" style="max-height: 200px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
                             <table>
@@ -232,7 +238,7 @@
                 </div>
 
                 <div class="seccion-acordeon">
-                    <div class="header-acordeon" onclick="window.toggleAcordeon('ac-gastos')" style="color: #ef4444;">
+                    <div class="header-acordeon" onclick="window.toggleAcordeon('ac-gastos')">
                         <span>💸 Gastos Externos</span> <span id="flecha-ac-gastos">🔽</span>
                     </div>
                     <div id="ac-gastos" class="contenido-acordeon">
@@ -254,7 +260,7 @@
                 </div>
 
                 <div class="seccion-acordeon">
-                    <div class="header-acordeon" onclick="window.toggleAcordeon('ac-ingresos')" style="color: #10b981;">
+                    <div class="header-acordeon" onclick="window.toggleAcordeon('ac-ingresos')">
                         <span>📈 Ingresos y Ventas</span> <span id="flecha-ac-ingresos">🔽</span>
                     </div>
                     <div id="ac-ingresos" class="contenido-acordeon">
@@ -269,7 +275,7 @@
                                 <input type="number" id="ingreso-efectivo-prod" class="input-form" placeholder="Efectivo $" style="flex: 1;">
                                 <input type="number" id="ingreso-transferencia-prod" class="input-form" placeholder="Transf. $" style="flex: 1;">
                             </div>
-                            <button class="btn-modal btn-guardar" onclick="window.venderProductoMostrador()" style="margin-top: 10px; padding: 8px;">Vender Producto</button>
+                            <button class="btn-modal btn-gasto" onclick="window.venderProductoMostrador()" style="margin-top: 10px; padding: 8px;">Vender Producto</button>
                         </div>
 
                         <div style="border: 1px solid #2c3540; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
@@ -281,7 +287,7 @@
                                 <input type="number" id="ingreso-efectivo" class="input-form" placeholder="Efectivo $" style="flex: 1;">
                                 <input type="number" id="ingreso-transferencia" class="input-form" placeholder="Transf. $" style="flex: 1;">
                             </div>
-                            <button class="btn-modal btn-guardar" onclick="window.agregarIngresoLibre()" style="margin-top: 10px; padding: 8px;">Registrar Ingreso</button>
+                            <button class="btn-modal btn-gasto" onclick="window.agregarIngresoLibre()" style="margin-top: 10px; padding: 8px;">Registrar Ingreso</button>
                         </div>
 
                         <div class="scroll-interno" style="max-height: 150px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
@@ -294,7 +300,7 @@
                 </div>
 
                 <div class="seccion-acordeon">
-                    <div class="header-acordeon" onclick="window.toggleAcordeon('ac-balances')" style="color: #f59e0b;">
+                    <div class="header-acordeon" onclick="window.toggleAcordeon('ac-balances')">
                         <span>📊 Balance de Ganancias</span> <span id="flecha-ac-balances">🔽</span>
                     </div>
                     <div id="ac-balances" class="contenido-acordeon">
@@ -312,7 +318,7 @@
                         <div class="scroll-interno" style="max-height: 200px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
                             <table>
                                 <thead>
-                                    <tr><th>Cierre / Período</th><th style="text-align: right;">Ingresos</th><th style="text-align: right;">Gastos</th><th style="text-align: right; color: #10b981;">Neta</th><th style="text-align: center;">Borrar</th></tr>
+                                    <tr><th>Cierre / Período</th><th style="text-align: right;">Ingresos</th><th style="text-align: right;">Gastos</th><th style="text-align: right;">Neta</th><th style="text-align: center;">Borrar</th></tr>
                                 </thead>
                                 <tbody id="tabla-balances"></tbody>
                             </table>
@@ -327,7 +333,7 @@
 
     <div id="modal-reponer-stock" class="modal-overlay" style="z-index: 1100;">
         <div class="modal-content" style="max-width: 300px;">
-            <h3 style="margin: 0; color: #3b82f6;">Reponer Stock</h3>
+            <h3 style="margin: 0; color: #ffffff;">Reponer Stock</h3>
             <p id="lbl-reponer-prod" style="color: #9ca3af; margin: 5px 0 15px 0; font-weight: bold;"></p>
             <input type="hidden" id="reponer-id-prod">
             
@@ -343,14 +349,14 @@
                 <p style="font-size: 0.75em; color: #9ca3af; margin: 0;">El costo total se registrará automáticamente como un Gasto Externo.</p>
             </div>
             
-            <button class="btn-modal btn-guardar" style="margin-top: 15px;" onclick="window.confirmarReposicionStock()">Reponer y Registrar Gasto</button>
+            <button class="btn-modal btn-gasto" style="margin-top: 15px;" onclick="window.confirmarReposicionStock()">Reponer y Registrar Gasto</button>
             <button class="btn-modal btn-cerrar" onclick="window.cerrarModalReposicion()">Cancelar</button>
         </div>
     </div>
 
     <div id="modal-acciones" class="modal-overlay">
         <div class="modal-content scroll-interno" style="max-width: 480px;">
-            <h3 style="margin: 0; border-bottom: 1px solid #44505d; padding-bottom: 10px; color: #3b82f6;" id="titulo-modal-acciones">Gestión de Turno</h3>
+            <h3 style="margin: 0; border-bottom: 1px solid #44505d; padding-bottom: 10px; color: #ffffff;" id="titulo-modal-acciones">Gestión de Turno</h3>
             
             <div class="seccion-acordeon" style="margin-top: 10px;">
                 <div class="header-acordeon" onclick="window.toggleAcordeon('ac-consumos-turno')" style="font-size: 0.95em; padding: 10px;">
@@ -359,7 +365,7 @@
                 <div id="ac-consumos-turno" class="contenido-acordeon" style="padding: 10px;">
                     <div style="display: flex; gap: 8px;">
                         <select id="select-consumo-turno" class="input-form" style="flex: 1;"></select>
-                        <button class="btn-modal btn-guardar" style="width: auto; padding: 10px 15px;" onclick="window.agregarConsumoTurno()">Añadir</button>
+                        <button class="btn-modal btn-gasto" style="width: auto; padding: 10px 15px;" onclick="window.agregarConsumoTurno()">Añadir</button>
                     </div>
                     <ul id="lista-consumos-turno" class="scroll-interno" style="list-style: none; padding: 0; margin: 10px 0 0 0; max-height: 120px; overflow-y: auto; font-size: 0.9em;"></ul>
                 </div>
@@ -367,12 +373,12 @@
 
             <div style="background: #242c36; padding: 15px; border-radius: 8px; border: 1px solid #2c3540; text-align: left; margin-bottom: 10px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9em; color: #9ca3af;">
-                    <span>Precio Cancha:</span> <span id="res-precio-cancha">$0</span>
+                    <span>Precio Cancha:</span> <span id="res-precio-cancha" class="text-neutral-main">$0</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.9em; color: #9ca3af;">
-                    <span>Total Consumos:</span> <span id="res-precio-consumos">$0</span>
+                    <span>Total Consumos:</span> <span id="res-precio-consumos" class="text-neutral-main">$0</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2em; color: #10b981; margin-bottom: 15px; border-top: 1px solid #44505d; padding-top: 10px;">
+                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2em; color: #ffffff; margin-bottom: 15px; border-top: 1px solid #44505d; padding-top: 10px;">
                     <span>A COBRAR:</span> <span id="res-precio-total">$0</span>
                 </div>
 
@@ -387,16 +393,16 @@
                         <input type="number" id="pago-transferencia" class="input-form" placeholder="0" oninput="window.calcularFaltante()">
                     </div>
                 </div>
-                <div style="text-align: right; margin-top: 8px; font-size: 0.9em; font-weight: bold;" id="txt-faltante">Falta cobrar: $0</div>
+                <div style="text-align: right; margin-top: 8px; font-size: 0.9em; font-weight: bold; color: #d1d5db;" id="txt-faltante">Falta cobrar: $0</div>
 
-                <button class="btn-modal btn-guardar" style="margin-top: 15px;" onclick="window.cobrarTurno()">✅ Guardar Pagos</button>
+                <button class="btn-modal btn-gasto" style="margin-top: 15px;" onclick="window.cobrarTurno()">Guardar Pagos</button>
             </div>
 
             <div style="display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid #44505d; padding-top: 15px;">
                 <button class="btn-modal btn-whatsapp" id="btn-whatsapp" onclick="window.accionWhatsApp()" style="flex: 1; min-width: 45%; font-size: 0.85em;">💬 WhatsApp</button>
-                <button class="btn-modal btn-fijar" id="btn-toggle-fijo" onclick="window.accionFijarTurno()" style="flex: 1; min-width: 45%; font-size: 0.85em;">📌 Fijar Turno</button>
-                <button class="btn-modal btn-excepcion" id="btn-excepcion" onclick="window.accionCancelarExcepcion()" style="flex: 1; min-width: 45%; font-size: 0.85em; display:none;">🚫 Cancelar Hoy</button>
-                <button class="btn-modal btn-eliminar" onclick="window.accionEliminar()" style="flex: 1; min-width: 45%; font-size: 0.85em;">🗑️ Borrar Turno</button>
+                <button class="btn-modal btn-gasto" id="btn-toggle-fijo" onclick="window.accionFijarTurno()" style="flex: 1; min-width: 45%; font-size: 0.85em;">📌 Fijar Turno</button>
+                <button class="btn-modal btn-gasto" id="btn-excepcion" onclick="window.accionCancelarExcepcion()" style="flex: 1; min-width: 45%; font-size: 0.85em; display:none;">🚫 Cancelar Hoy</button>
+                <button class="btn-modal btn-cerrar" onclick="window.accionEliminar()" style="flex: 1; min-width: 45%; font-size: 0.85em; margin-top: 0;">🗑️ Borrar Turno</button>
             </div>
             <button class="btn-modal btn-cerrar" onclick="window.cerrarModalAcciones()">Cerrar Gestión</button>
         </div>
@@ -439,7 +445,7 @@
                     </select>
                 </div>
             </div>
-            <button class="btn-modal btn-guardar" style="margin-top: 20px;" onclick="window.guardarConfiguracion()">Guardar Todo</button>
+            <button class="btn-modal btn-gasto" style="margin-top: 20px;" onclick="window.guardarConfiguracion()">Guardar Todo</button>
             <button class="btn-modal btn-cerrar" style="margin-top: 0;" onclick="window.cerrarModalConfig()">Cancelar</button>
         </div>
     </div>
@@ -535,7 +541,6 @@
         let reservaSeleccionadaId = null; 
         let reservaEnProcesoHora = null;
 
-        // --- FUNCIONES ÚTILES Y ACORDEONES ---
         window.aMinutos = function(horaStr) { let [h, m] = horaStr.split(':').map(Number); return (h * 60) + m; }
         window.sumarMinutos = function(horaStr, minutosAñadir) {
             let [h, m] = horaStr.split(':').map(Number); let total = (h * 60) + m + minutosAñadir;
@@ -638,9 +643,7 @@
                 let gastoTotal = cant * costoUnitario;
                 
                 try {
-                    // Actualiza stock y último costo
                     await updateDoc(doc(db, "inventario", id), { stock: nuevoStock, costo: costoUnitario });
-                    // Registra el gasto automáticamente
                     if(gastoTotal > 0) {
                         await addDoc(collection(db, "gastos"), { 
                             titulo: `Reposición Stock: ${nombreProd}`, descripcion: `${cant} unidades a $${costoUnitario} c/u`, 
@@ -660,12 +663,11 @@
             
             inventarioGlobal.sort((a, b) => a.nombre.localeCompare(b.nombre)).forEach(prod => {
                 let stockVal = parseInt(prod.stock) || 0;
-                let colorStock = stockVal <= 0 ? '#ef4444' : '#9ca3af';
                 
                 tbody.innerHTML += `<tr>
-                    <td><strong>${prod.nombre}</strong><br><small style="color:#3b82f6;">${prod.categoria}</small></td>
-                    <td style="text-align: center; color: ${colorStock}; font-weight: bold;">${stockVal}</td>
-                    <td style="text-align: right; color: #10b981;">$${prod.precio}</td>
+                    <td><strong class="text-neutral-main">${prod.nombre}</strong><br><small class="text-neutral-sub">${prod.categoria}</small></td>
+                    <td style="text-align: center; color: ${stockVal <= 0 ? '#ef4444' : '#d1d5db'}; font-weight: bold;">${stockVal}</td>
+                    <td style="text-align: right;" class="text-neutral-bold">$${prod.precio}</td>
                     <td style="text-align: center;">
                         <button class="btn-modal btn-stock" onclick="window.abrirModalReposicion('${prod.id}', '${prod.nombre}', ${prod.costo || 0})" title="Reponer Stock">➕</button>
                         <button onclick="window.eliminarInventario('${prod.id}')" style="background:none;border:none;cursor:pointer;font-size:1.1em; margin-left: 5px;">🗑️</button>
@@ -686,7 +688,7 @@
 
             const selVR = document.getElementById('ingreso-select-prod');
             if(selVR) {
-                selVR.innerHTML = '<option value="" disabled selected>Selecciona producto para vender...</option>';
+                selVR.innerHTML = '<option value="" disabled selected>Selecciona producto...</option>';
                 inventarioGlobal.sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(p => {
                     let stock = parseInt(p.stock) || 0;
                     if(stock > 0) selVR.innerHTML += `<option value="${p.id}">${p.nombre} ($${p.precio}) - Disp: ${stock}</option>`;
@@ -712,14 +714,13 @@
             tbody.innerHTML = '';
             if(gastosGlobal.length === 0) { tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #9ca3af; padding: 15px;">No hay gastos</td></tr>'; return; }
             gastosGlobal.sort((a, b) => (b.fechaRegistro?.seconds || 0) - (a.fechaRegistro?.seconds || 0)).forEach(gasto => {
-                let descHtml = gasto.descripcion ? `<br><small style="color:#9ca3af; font-size:0.85em;">${gasto.descripcion}</small>` : '';
-                tbody.innerHTML += `<tr><td><strong>${gasto.titulo}</strong>${descHtml}</td>
-                    <td style="text-align: right; color: #ef4444; font-weight: bold;">$${gasto.importe}</td>
+                let descHtml = gasto.descripcion ? `<br><small class="text-neutral-sub" style="font-size:0.85em;">${gasto.descripcion}</small>` : '';
+                tbody.innerHTML += `<tr><td><strong class="text-neutral-main">${gasto.titulo}</strong>${descHtml}</td>
+                    <td style="text-align: right; font-weight: bold;" class="text-neutral-bold">$${gasto.importe}</td>
                     <td style="text-align: center;"><button onclick="window.eliminarGasto('${gasto.id}')" style="background:none;border:none;cursor:pointer;font-size:1.1em;">🗑️</button></td></tr>`;
             });
         }
 
-        // Ingreso por Venta de Mostrador (Descuenta Stock)
         window.venderProductoMostrador = async function() {
             const prodId = document.getElementById('ingreso-select-prod').value;
             const efe = parseFloat(document.getElementById('ingreso-efectivo-prod').value) || 0;
@@ -734,19 +735,15 @@
             if(efe === 0 && trans === 0) { alert("Ingresa el monto cobrado."); return; }
 
             try {
-                // 1. Registrar el ingreso
                 await addDoc(collection(db, "ingresos"), { 
                     titulo: `Venta: ${prod.nombre}`, efectivo: efe, transferencia: trans, fechaRegistro: serverTimestamp() 
                 });
-                // 2. Descontar Stock
                 await updateDoc(doc(db, "inventario", prodId), { stock: stockActual - 1 });
-                
                 document.getElementById('ingreso-efectivo-prod').value = ''; document.getElementById('ingreso-transferencia-prod').value = '';
                 alert("Venta registrada y stock descontado.");
             } catch(e) { alert("Error en la venta."); }
         }
 
-        // Ingreso Manual Libre (NO descuenta stock)
         window.agregarIngresoLibre = async function() {
             const titulo = document.getElementById('ingreso-titulo').value.trim();
             const efe = parseFloat(document.getElementById('ingreso-efectivo').value) || 0;
@@ -792,9 +789,9 @@
                     ? `<button onclick="window.eliminarIngreso('${item.id}')" style="background:none;border:none;cursor:pointer;font-size:1.1em;" title="Borrar">🗑️</button>`
                     : `<span style="color:#9ca3af; font-size:0.8em; border: 1px solid #44505d; padding: 2px 5px; border-radius: 4px;">Turno</span>`;
                 
-                tbody.innerHTML += `<tr><td><strong>${item.titulo}</strong></td>
-                    <td style="text-align: right; color: #10b981;">$${item.efectivo}</td>
-                    <td style="text-align: right; color: #3b82f6;">$${item.transferencia}</td>
+                tbody.innerHTML += `<tr><td><strong class="text-neutral-main">${item.titulo}</strong></td>
+                    <td style="text-align: right;" class="text-neutral-bold">$${item.efectivo}</td>
+                    <td style="text-align: right;" class="text-neutral-sub">$${item.transferencia}</td>
                     <td style="text-align: center;">${btnHtml}</td></tr>`;
             });
         }
@@ -846,13 +843,12 @@
             if(balancesGlobal.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #9ca3af; padding: 15px;">No hay balances</td></tr>'; return; }
 
             balancesGlobal.sort((a,b) => (b.fechaCreacion?.seconds || 0) - (a.fechaCreacion?.seconds || 0)).forEach(bal => {
-                let colorGanancia = bal.ganancia >= 0 ? "#10b981" : "#ef4444";
                 tbody.innerHTML += `
                     <tr>
-                        <td><strong>${bal.titulo}</strong><br><small style="color:#9ca3af;">(${bal.periodoTexto})</small></td>
-                        <td style="text-align: right; color: #3b82f6;">$${bal.ingresos}</td>
-                        <td style="text-align: right; color: #ef4444;">$${bal.gastos}</td>
-                        <td style="text-align: right; font-weight: bold; color: ${colorGanancia};">$${bal.ganancia}</td>
+                        <td><strong class="text-neutral-main">${bal.titulo}</strong><br><small class="text-neutral-sub">(${bal.periodoTexto})</small></td>
+                        <td style="text-align: right;" class="text-neutral-sub">$${bal.ingresos}</td>
+                        <td style="text-align: right;" class="text-neutral-sub">$${bal.gastos}</td>
+                        <td style="text-align: right; font-weight: bold;" class="text-neutral-main">$${bal.ganancia}</td>
                         <td style="text-align: center;"><button onclick="window.eliminarBalance('${bal.id}')" style="background:none;border:none;cursor:pointer;font-size:1.1em;">🗑️</button></td>
                     </tr>
                 `;
@@ -874,7 +870,7 @@
             balancesGlobal = []; snapshot.forEach((doc) => balancesGlobal.push({ id: doc.id, ...doc.data() })); renderizarBalances(); 
         });
 
-        // --- GESTIÓN DE TURNOS (PUNTO DE VENTA CON STOCK) ---
+        // --- GESTIÓN DE TURNOS (PUNTO DE VENTA) ---
         window.abrirModal = function(id) { 
             reservaSeleccionadaId = id; 
             const res = reservasGlobales.find(r => r.id === id);
@@ -894,7 +890,7 @@
 
             const btnFijar = document.getElementById('btn-toggle-fijo');
             if(res.fijo) { btnFijar.innerHTML = "📌 Quitar Turno Fijo"; btnFijar.style.backgroundColor = "#4b5563"; } 
-            else { btnFijar.innerHTML = "📌 Fijar Turno"; btnFijar.style.backgroundColor = "#10b981"; }
+            else { btnFijar.innerHTML = "📌 Fijar Turno"; btnFijar.style.backgroundColor = "#374151"; }
 
             document.getElementById('btn-whatsapp').style.display = (res.telefono && res.telefono.trim() !== "") ? 'block' : 'none';
             document.getElementById('btn-excepcion').style.display = res.fijo ? 'block' : 'none';
@@ -923,7 +919,7 @@
             } else {
                 consumos.forEach((c, index) => {
                     ul.innerHTML += `<li style="display: flex; justify-content: space-between; border-bottom: 1px solid #2c3540; padding: 5px 0;">
-                            <span>${c.nombre}</span><span><span style="color: #10b981; margin-right: 10px;">$${c.precio}</span>
+                            <span class="text-neutral-main">${c.nombre}</span><span><span class="text-neutral-bold" style="margin-right: 10px;">$${c.precio}</span>
                             <button onclick="window.eliminarConsumoTurno(${index}, '${c.prodId}')" style="background:none;border:none;cursor:pointer;font-size:1.1em;">❌</button></span></li>`;
                 });
             }
@@ -932,7 +928,6 @@
 
         window.cerrarModalAcciones = function() { reservaSeleccionadaId = null; document.getElementById('modal-acciones').style.display = 'none'; }
 
-        // Agregar consumo y descontar stock
         window.agregarConsumoTurno = async function() {
             if(!reservaSeleccionadaId) return;
             const res = reservasGlobales.find(r => r.id === reservaSeleccionadaId);
@@ -955,7 +950,6 @@
             }
         }
 
-        // Eliminar consumo y devolver stock
         window.eliminarConsumoTurno = async function(index, prodId) {
             if(!reservaSeleccionadaId) return;
             const res = reservasGlobales.find(r => r.id === reservaSeleccionadaId);
@@ -991,9 +985,9 @@
             let faltante = tGen - (efe + trans);
             let txt = document.getElementById('txt-faltante');
             if(faltante <= 0 && tGen > 0) {
-                txt.innerText = `Pagado por completo ✅`; txt.style.color = "#10b981";
+                txt.innerText = `Pagado por completo ✅`; txt.style.color = "#d1d5db";
             } else {
-                txt.innerText = `Falta cobrar: $${faltante}`; txt.style.color = "#ef4444";
+                txt.innerText = `Falta cobrar: $${faltante}`; txt.style.color = "#d1d5db";
             }
         }
 
@@ -1263,10 +1257,10 @@
                 
                 let esIndoor = c <= canchasIndoorGlobal;
                 let tipoLabel = esIndoor ? "Indoor" : "Outdoor";
-                let colorTipo = esIndoor ? "#3b82f6" : "#10b981"; 
+                let colorTipo = esIndoor ? "#d1d5db" : "#9ca3af"; // Gris claro y oscuro
                 
                 htmlGrilla += `<div style="height: 50px; border-bottom: 1px solid #2c3540; text-align: center; background: #242c36; font-size: 0.9em; display:flex; flex-direction:column; justify-content:center;">
-                                <span style="font-weight: bold;">Cancha ${c}</span>
+                                <span style="font-weight: bold;" class="text-neutral-main">Cancha ${c}</span>
                                 <span style="font-size: 0.8em; color:${colorTipo};">${tipoLabel}</span>
                                </div>`;
                 
