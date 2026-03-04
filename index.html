@@ -105,6 +105,11 @@
         .scroll-interno::-webkit-scrollbar-thumb { background: #44505d; border-radius: 4px; }
         
         .checkbox-dias label { cursor: pointer; }
+        
+        /* Estilos específicos para la tabla de inventario */
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th { padding: 8px; text-align: left; border-bottom: 2px solid #44505d; color: #9ca3af; }
+        td { padding: 8px; border-bottom: 1px solid #2c3540; }
     </style>
 </head>
 <body>
@@ -128,6 +133,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h2 style="margin: 0;">Panel de Control</h2>
             <div style="display: flex; gap: 15px;">
+                <button onclick="window.abrirModalFinanzas()" style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: #9ca3af; transition: 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#9ca3af'" title="Finanzas e Inventario">💰</button>
                 <button onclick="window.abrirModalMetricas()" style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: #9ca3af; transition: 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#9ca3af'" title="Métricas del Club">📊</button>
                 <button onclick="window.abrirModalConfig()" style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: #9ca3af; transition: 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#9ca3af'" title="Configuración del Club">⚙️</button>
             </div>
@@ -158,6 +164,39 @@
 
             <button class="btn-modal btn-guardar" style="margin-top: 20px;" onclick="window.confirmarReservaJugador()">Confirmar Reserva</button>
             <button class="btn-modal btn-cerrar" style="margin-top: 0;" onclick="window.cerrarModalReservaJugador()">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="modal-finanzas" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;"> <h3 style="margin: 0; margin-bottom: 15px; border-bottom: 1px solid #44505d; padding-bottom: 10px;">💰 Finanzas e Inventario</h3>
+            
+            <div style="text-align: left;">
+                <h4 style="margin: 0 0 10px 0; color: #3b82f6;">Establecer Inventario</h4>
+                
+                <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                    <input type="text" id="inv-nombre" class="input-form" placeholder="Producto (Ej: Agua)" style="flex: 2;">
+                    <input type="text" id="inv-categoria" class="input-form" placeholder="Categoría (Ej: Bebida)" style="flex: 2;">
+                    <input type="number" id="inv-precio" class="input-form" placeholder="Precio $" style="flex: 1;">
+                </div>
+                <button class="btn-modal btn-guardar" onclick="window.agregarInventario()" style="margin-bottom: 20px;">Añadir al Inventario</button>
+
+                <div class="scroll-interno" style="max-height: 200px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Categoría</th>
+                                <th style="text-align: right;">Precio</th>
+                                <th style="text-align: center;">Borrar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-inventario">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <button class="btn-modal btn-cerrar" style="margin-top: 20px;" onclick="window.cerrarModalFinanzas()">Cerrar</button>
         </div>
     </div>
 
@@ -296,9 +335,10 @@
         let canchasOutdoorGlobal = 0;
         let precioIndoorGlobal = "15000";
         let precioOutdoorGlobal = "12000";
-        let diasAbiertosGlobal = [0,1,2,3,4,5,6]; // Por defecto todos abiertos
+        let diasAbiertosGlobal = [0,1,2,3,4,5,6]; 
 
         let reservasGlobales = [];
+        let inventarioGlobal = []; // Array para guardar los productos
         let reservaSeleccionadaId = null; 
         let reservaEnProcesoHora = null;
 
@@ -320,6 +360,74 @@
             document.getElementById('btn-jugador').classList.toggle('activo', vista === 'jugador');
             document.getElementById('btn-club').classList.toggle('activo', vista === 'club');
         }
+
+        // --- FUNCIONES DEL MODAL FINANZAS E INVENTARIO ---
+        window.abrirModalFinanzas = function() { document.getElementById('modal-finanzas').style.display = 'flex'; }
+        window.cerrarModalFinanzas = function() { document.getElementById('modal-finanzas').style.display = 'none'; }
+
+        window.agregarInventario = async function() {
+            const nombre = document.getElementById('inv-nombre').value.trim();
+            const categoria = document.getElementById('inv-categoria').value.trim();
+            const precio = document.getElementById('inv-precio').value;
+
+            if(!nombre || !categoria || !precio) {
+                alert("Por favor, completa Nombre, Categoría y Precio.");
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "inventario"), {
+                    nombre: nombre,
+                    categoria: categoria,
+                    precio: parseFloat(precio)
+                });
+                // Limpiar campos
+                document.getElementById('inv-nombre').value = '';
+                document.getElementById('inv-categoria').value = '';
+                document.getElementById('inv-precio').value = '';
+            } catch (error) {
+                alert("Error al guardar el producto.");
+            }
+        }
+
+        window.eliminarInventario = async function(id) {
+            if(confirm("¿Seguro que quieres borrar este producto del inventario?")) {
+                await deleteDoc(doc(db, "inventario", id));
+            }
+        }
+
+        function renderizarInventario() {
+            const tbody = document.getElementById('tabla-inventario');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            
+            if(inventarioGlobal.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #9ca3af; padding: 15px;">No hay productos registrados</td></tr>';
+                return;
+            }
+
+            // Ordenamos alfabéticamente por nombre
+            inventarioGlobal.sort((a, b) => a.nombre.localeCompare(b.nombre)).forEach(prod => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${prod.nombre}</strong></td>
+                        <td style="color: #9ca3af;">${prod.categoria}</td>
+                        <td style="text-align: right; color: #10b981;">$${prod.precio}</td>
+                        <td style="text-align: center;">
+                            <button onclick="window.eliminarInventario('${prod.id}')" style="background: none; border: none; cursor: pointer; font-size: 1.1em;" title="Borrar">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Listener para Inventario
+        onSnapshot(collection(db, "inventario"), (snapshot) => {
+            inventarioGlobal = [];
+            snapshot.forEach((doc) => inventarioGlobal.push({ id: doc.id, ...doc.data() }));
+            renderizarInventario(); 
+        });
+        // ---------------------------------------------------
 
         window.abrirModalConfig = function() { document.getElementById('modal-config').style.display = 'flex'; }
         window.cerrarModalConfig = function() { document.getElementById('modal-config').style.display = 'none'; }
@@ -394,7 +502,6 @@
                 }
             });
 
-            // Lógica para asignar silenciosamente la primera cancha libre del tipo seleccionado
             let indoorLibres = [];
             for(let c=1; c<=canchasIndoorGlobal; c++) {
                 if(!canchasOcupadas.has(c)) indoorLibres.push(c);
@@ -410,7 +517,6 @@
             selectTipo.innerHTML = '';
             
             if(indoorLibres.length > 0) {
-                // El valor oculto es el número de la cancha, pero el usuario solo lee "Indoor"
                 selectTipo.innerHTML += `<option value="${indoorLibres[0]}" style="color: black;">Indoor ($${precioIndoorGlobal})</option>`;
             }
             if(outdoorLibres.length > 0) {
@@ -432,7 +538,6 @@
         window.confirmarReservaJugador = async function() {
             const inputNombre = document.getElementById('input-nombre-jugador').value;
             const inputTelefono = document.getElementById('input-telefono-jugador').value;
-            // Al hacer value, capturamos automáticamente el número de cancha libre que escondimos en el option
             const canchaAsignada = document.getElementById('select-cancha-modal').value;
 
             if (!inputNombre || inputNombre.trim() === "") { alert("Por favor, ingresa Nombre y Apellido."); return; }
@@ -480,12 +585,11 @@
             } 
         }
         
-        // ACCIÓN WHATSAPP CON MENSAJE PERSONALIZADO
         window.accionWhatsApp = function() {
             if(reservaSeleccionadaId) {
                 const res = reservasGlobales.find(r => r.id === reservaSeleccionadaId);
                 if(res && res.telefono) {
-                    let numeroLimpio = res.telefono.replace(/\D/g,''); // Solo deja los números
+                    let numeroLimpio = res.telefono.replace(/\D/g,''); 
                     let esIndoor = parseInt(res.cancha || "1") <= canchasIndoorGlobal;
                     let tipoTurno = esIndoor ? "indoor" : "outdoor";
                     let precioWsp = esIndoor ? precioIndoorGlobal : precioOutdoorGlobal;
@@ -532,7 +636,7 @@
                 precioIndoorGlobal = data.precioIndoor || "15000";
                 precioOutdoorGlobal = data.precioOutdoor || "12000";
                 
-                diasAbiertosGlobal = data.diasAbiertos || [0,1,2,3,4,5,6]; // Lee los días abiertos de la base de datos
+                diasAbiertosGlobal = data.diasAbiertos || [0,1,2,3,4,5,6]; 
                 
                 document.getElementById('input-primer-turno').value = primerTurno;
                 document.getElementById('input-ultimo-turno').value = ultimoTurno;
@@ -542,7 +646,6 @@
                 document.getElementById('input-canchas-out').value = canchasOutdoorGlobal;
                 document.getElementById('input-precio-out').value = precioOutdoorGlobal;
 
-                // Tilda las casillas correctas en la configuración visual
                 [0,1,2,3,4,5,6].forEach(d => {
                     const cb = document.getElementById('dia-'+d);
                     if(cb) cb.checked = diasAbiertosGlobal.includes(d);
@@ -565,7 +668,6 @@
             const contenedorHorarios = document.getElementById('lista-horarios');
             contenedorHorarios.innerHTML = '';
             
-            // VERIFICAMOS SI EL DÍA ESTÁ ABIERTO
             if (!diasAbiertosGlobal.includes(dowNumSelected)) {
                 contenedorHorarios.innerHTML = '<div style="text-align:center; padding: 30px; color:#9ca3af; font-size: 1.1em; background: #242c36; border-radius: 8px;">El club se encuentra cerrado este día.</div>';
             } else {
@@ -609,7 +711,7 @@
                 });
             }
 
-            // 2. VISTA CLUB (Esta se renderiza igual para que el admin vea la grilla vacía)
+            // 2. VISTA CLUB 
             const contenedorClub = document.getElementById('lista-reservas-club');
             contenedorClub.innerHTML = '';
 
@@ -627,7 +729,6 @@
 
             let htmlGrilla = `<div class="contenedor-grilla">`;
             
-            // Columna de Horas
             htmlGrilla += `<div style="width: 55px; flex-shrink: 0; border-right: 1px solid #2c3540; background: #1e252d;">`;
             htmlGrilla += `<div style="height: 50px; border-bottom: 1px solid #2c3540; background: #242c36;"></div>`; 
             for (let m = minActual; m < minFin; m += 30) {
@@ -639,7 +740,6 @@
             }
             htmlGrilla += `</div>`;
 
-            // Columnas de Canchas
             for(let c = 1; c <= totalCanchas; c++) {
                 htmlGrilla += `<div style="flex: 1; min-width: 140px; border-right: 1px solid #2c3540; position: relative;">`;
                 
