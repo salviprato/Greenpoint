@@ -66,7 +66,7 @@
 
         .contenedor-grilla {
             display: flex; overflow-x: auto; background: #1e252d; border: 1px solid #2c3540; 
-            border-radius: 8px; margin-top: 15px; user-select: none;
+            border-radius: 8px; margin-top: 15px; user-select: none; position: relative; /* Para la línea de tiempo */
         }
         .contenedor-grilla::-webkit-scrollbar { height: 8px; }
         .contenedor-grilla::-webkit-scrollbar-thumb { background: #44505d; border-radius: 4px; }
@@ -78,6 +78,16 @@
         
         .celda-vacia-hover { transition: background-color 0.1s; }
         .celda-vacia-hover:hover { background-color: rgba(59, 130, 246, 0.15); }
+
+        /* LINEA DE TIEMPO EN VIVO */
+        #linea-tiempo-actual {
+            position: absolute; left: 55px; right: 0; height: 2px;
+            background-color: #ef4444; z-index: 20; display: none; pointer-events: none;
+        }
+        #linea-tiempo-actual::before {
+            content: ''; position: absolute; left: -4px; top: -4px;
+            width: 10px; height: 10px; border-radius: 50%; background-color: #ef4444;
+        }
 
         /* Modales */
         .modal-overlay {
@@ -116,6 +126,16 @@
         table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
         th { padding: 8px; text-align: left; border-bottom: 2px solid #44505d; color: #9ca3af; }
         td { padding: 8px; border-bottom: 1px solid #2c3540; }
+
+        /* Estilos para el Acordeón (Collapsible) */
+        .seccion-acordeon { border: 1px solid #2c3540; border-radius: 8px; margin-bottom: 15px; overflow: hidden; background: #171d24;}
+        .header-acordeon { 
+            display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; 
+            background: #242c36; cursor: pointer; font-weight: bold; font-size: 1.05em; user-select: none;
+        }
+        .header-acordeon:hover { background: #2c3540; }
+        .contenido-acordeon { padding: 15px; display: none; }
+        .contenido-acordeon.abierto { display: block; }
     </style>
 </head>
 <body>
@@ -179,98 +199,99 @@
             
             <div style="text-align: left;">
                 
-                <h4 style="margin: 0 0 10px 0; color: #3b82f6;">📦 Establecer Inventario</h4>
-                <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-                    <input type="text" id="inv-nombre" class="input-form" placeholder="Producto" style="flex: 2;">
-                    <select id="inv-categoria" class="input-form" style="flex: 2;">
-                        <option value="" disabled selected>Categoría...</option>
-                        <option value="Bebidas">Bebidas</option>
-                        <option value="Comida">Comida</option>
-                        <option value="Padel/Tenis">Padel/Tenis</option>
-                    </select>
-                    <input type="number" id="inv-precio" class="input-form" placeholder="Precio $" style="flex: 1;">
-                </div>
-                <button class="btn-modal btn-guardar" onclick="window.agregarInventario()" style="margin-bottom: 20px;">Añadir al Inventario</button>
-
-                <div class="scroll-interno" style="max-height: 150px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
-                    <table>
-                        <thead>
-                            <tr><th>Producto</th><th>Categoría</th><th style="text-align: right;">Precio</th><th style="text-align: center;">Borrar</th></tr>
-                        </thead>
-                        <tbody id="tabla-inventario"></tbody>
-                    </table>
-                </div>
-
-                <hr style="border: 0; border-top: 1px solid #44505d; margin: 25px 0;">
-
-                <h4 style="margin: 0 0 10px 0; color: #ef4444;">💸 Gastos Externos</h4>
-                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                    <input type="text" id="gasto-titulo" class="input-form" placeholder="Título (Ej: Luz, Pelotas)" style="flex: 1;">
-                    <input type="number" id="gasto-importe" class="input-form" placeholder="Importe Gastado $" style="flex: 1;">
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <input type="text" id="gasto-desc" class="input-form" placeholder="Descripción corta (Opcional)">
-                </div>
-                <button class="btn-modal btn-gasto" onclick="window.agregarGasto()" style="margin-bottom: 20px;">Registrar Gasto</button>
-
-                <div class="scroll-interno" style="max-height: 150px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
-                    <table>
-                        <thead>
-                            <tr><th>Detalle del Gasto</th><th style="text-align: right;">Importe</th><th style="text-align: center;">Borrar</th></tr>
-                        </thead>
-                        <tbody id="tabla-gastos"></tbody>
-                    </table>
+                <div class="seccion-acordeon">
+                    <div class="header-acordeon" onclick="window.toggleAcordeon('ac-inv')" style="color: #3b82f6;">
+                        <span>📦 Establecer Inventario</span> <span id="flecha-ac-inv">🔽</span>
+                    </div>
+                    <div id="ac-inv" class="contenido-acordeon">
+                        <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                            <input type="text" id="inv-nombre" class="input-form" placeholder="Producto" style="flex: 2;">
+                            <select id="inv-categoria" class="input-form" style="flex: 2;">
+                                <option value="" disabled selected>Categoría...</option>
+                                <option value="Bebidas">Bebidas</option>
+                                <option value="Comida">Comida</option>
+                                <option value="Padel/Tenis">Padel/Tenis</option>
+                            </select>
+                            <input type="number" id="inv-precio" class="input-form" placeholder="Precio $" style="flex: 1;">
+                        </div>
+                        <button class="btn-modal btn-guardar" onclick="window.agregarInventario()" style="margin-bottom: 20px;">Añadir al Inventario</button>
+                        <div class="scroll-interno" style="max-height: 150px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
+                            <table>
+                                <thead><tr><th>Producto</th><th>Categoría</th><th style="text-align: right;">Precio</th><th style="text-align: center;">Borrar</th></tr></thead>
+                                <tbody id="tabla-inventario"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
-                <hr style="border: 0; border-top: 1px solid #44505d; margin: 25px 0;">
-
-                <h4 style="margin: 0 0 10px 0; color: #10b981;">📈 Ingresos y Ventas</h4>
-                <p style="font-size: 0.85em; color: #9ca3af; margin-top: 0;">Los pagos de los turnos aparecen solos. Usa esto para ventas de mostrador extra.</p>
-                <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-                    <input type="text" id="ingreso-titulo" class="input-form" placeholder="Detalle (Ej: Venta remera)" style="flex: 2;">
-                    <input type="number" id="ingreso-efectivo" class="input-form" placeholder="Efectivo $" style="flex: 1;">
-                    <input type="number" id="ingreso-transferencia" class="input-form" placeholder="Transf. $" style="flex: 1;">
+                <div class="seccion-acordeon">
+                    <div class="header-acordeon" onclick="window.toggleAcordeon('ac-gastos')" style="color: #ef4444;">
+                        <span>💸 Gastos Externos</span> <span id="flecha-ac-gastos">🔽</span>
+                    </div>
+                    <div id="ac-gastos" class="contenido-acordeon">
+                        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                            <input type="text" id="gasto-titulo" class="input-form" placeholder="Título (Ej: Luz, Pelotas)" style="flex: 1;">
+                            <input type="number" id="gasto-importe" class="input-form" placeholder="Importe Gastado $" style="flex: 1;">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <input type="text" id="gasto-desc" class="input-form" placeholder="Descripción corta (Opcional)">
+                        </div>
+                        <button class="btn-modal btn-gasto" onclick="window.agregarGasto()" style="margin-bottom: 20px;">Registrar Gasto</button>
+                        <div class="scroll-interno" style="max-height: 150px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
+                            <table>
+                                <thead><tr><th>Detalle del Gasto</th><th style="text-align: right;">Importe</th><th style="text-align: center;">Borrar</th></tr></thead>
+                                <tbody id="tabla-gastos"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <button class="btn-modal btn-guardar" onclick="window.agregarIngreso()" style="margin-bottom: 20px;">Registrar Venta Extra</button>
 
-                <div class="scroll-interno" style="max-height: 150px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
-                    <table>
-                        <thead>
-                            <tr><th>Detalle</th><th style="text-align: right;">Efectivo</th><th style="text-align: right;">Transf.</th><th style="text-align: center;">Borrar</th></tr>
-                        </thead>
-                        <tbody id="tabla-ingresos"></tbody>
-                    </table>
+                <div class="seccion-acordeon">
+                    <div class="header-acordeon" onclick="window.toggleAcordeon('ac-ingresos')" style="color: #10b981;">
+                        <span>📈 Ingresos y Ventas</span> <span id="flecha-ac-ingresos">🔽</span>
+                    </div>
+                    <div id="ac-ingresos" class="contenido-acordeon">
+                        <p style="font-size: 0.85em; color: #9ca3af; margin-top: 0;">Los pagos de los turnos aparecen solos. Usa esto para ventas de mostrador extra.</p>
+                        <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                            <input type="text" id="ingreso-titulo" class="input-form" placeholder="Detalle (Ej: Venta remera)" style="flex: 2;">
+                            <input type="number" id="ingreso-efectivo" class="input-form" placeholder="Efectivo $" style="flex: 1;">
+                            <input type="number" id="ingreso-transferencia" class="input-form" placeholder="Transf. $" style="flex: 1;">
+                        </div>
+                        <button class="btn-modal btn-guardar" onclick="window.agregarIngreso()" style="margin-bottom: 20px;">Registrar Venta Extra</button>
+                        <div class="scroll-interno" style="max-height: 150px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
+                            <table>
+                                <thead><tr><th>Detalle</th><th style="text-align: right;">Efectivo</th><th style="text-align: right;">Transf.</th><th style="text-align: center;">Borrar</th></tr></thead>
+                                <tbody id="tabla-ingresos"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
-                <hr style="border: 0; border-top: 1px solid #44505d; margin: 25px 0;">
-
-                <h4 style="margin: 0 0 10px 0; color: #f59e0b;">📊 Balance de Ganancias (Cierres)</h4>
-                <p style="font-size: 0.85em; color: #9ca3af; margin-top: 0;">Fórmula: (Ganancia de Turnos + Ventas manuales) - Gastos Externos.</p>
-                
-                <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-                    <input type="text" id="balance-titulo" class="input-form" placeholder="Nombre (Ej: Marzo)" style="flex: 2;">
-                    <select id="balance-periodo" class="input-form" style="flex: 2;">
-                        <option value="" disabled selected>Período...</option>
-                        <option value="7">Última Semana (7 días)</option>
-                        <option value="30">Último Mes (30 días)</option>
-                        <option value="todo">Todo el historial</option>
-                    </select>
-                </div>
-                <button class="btn-modal btn-balance" onclick="window.generarBalance()" style="margin-bottom: 20px;">Calcular y Guardar Cierre</button>
-
-                <div class="scroll-interno" style="max-height: 200px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Cierre / Período</th>
-                                <th style="text-align: right;">Ingresos</th>
-                                <th style="text-align: right;">Gastos</th>
-                                <th style="text-align: right; color: #10b981;">Neta</th>
-                                <th style="text-align: center;">Borrar</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-balances"></tbody>
-                    </table>
+                <div class="seccion-acordeon">
+                    <div class="header-acordeon" onclick="window.toggleAcordeon('ac-balances')" style="color: #f59e0b;">
+                        <span>📊 Balance de Ganancias (Cierres)</span> <span id="flecha-ac-balances">🔽</span>
+                    </div>
+                    <div id="ac-balances" class="contenido-acordeon">
+                        <p style="font-size: 0.85em; color: #9ca3af; margin-top: 0;">Fórmula: (Ganancia de Turnos + Ventas manuales) - Gastos Externos.</p>
+                        <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                            <input type="text" id="balance-titulo" class="input-form" placeholder="Nombre (Ej: Marzo)" style="flex: 2;">
+                            <select id="balance-periodo" class="input-form" style="flex: 2;">
+                                <option value="" disabled selected>Período...</option>
+                                <option value="7">Última Semana</option>
+                                <option value="30">Último Mes</option>
+                                <option value="todo">Historial Completo</option>
+                            </select>
+                        </div>
+                        <button class="btn-modal btn-balance" onclick="window.generarBalance()" style="margin-bottom: 20px;">Calcular y Guardar Cierre</button>
+                        <div class="scroll-interno" style="max-height: 200px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
+                            <table>
+                                <thead>
+                                    <tr><th>Cierre / Período</th><th style="text-align: right;">Ingresos</th><th style="text-align: right;">Gastos</th><th style="text-align: right; color: #10b981;">Neta</th><th style="text-align: center;">Borrar</th></tr>
+                                </thead>
+                                <tbody id="tabla-balances"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -282,13 +303,17 @@
         <div class="modal-content scroll-interno" style="max-width: 480px;">
             <h3 style="margin: 0; border-bottom: 1px solid #44505d; padding-bottom: 10px; color: #3b82f6;" id="titulo-modal-acciones">Gestión de Turno</h3>
             
-            <div style="text-align: left; margin-top: 10px;">
-                <label style="font-size: 0.9em; color: #d1d5db; font-weight: bold;">🛒 Añadir Consumo (Inventario):</label>
-                <div style="display: flex; gap: 8px; margin-top: 5px;">
-                    <select id="select-consumo-turno" class="input-form" style="flex: 1;"></select>
-                    <button class="btn-modal btn-guardar" style="width: auto; padding: 10px 15px;" onclick="window.agregarConsumoTurno()">Añadir</button>
+            <div class="seccion-acordeon" style="margin-top: 10px;">
+                <div class="header-acordeon" onclick="window.toggleAcordeon('ac-consumos-turno')" style="font-size: 0.95em; padding: 10px;">
+                    <span>🛒 Añadir Consumo (Inventario)</span> <span id="flecha-ac-consumos-turno">🔽</span>
                 </div>
-                <ul id="lista-consumos-turno" class="scroll-interno" style="list-style: none; padding: 0; margin: 10px 0; max-height: 120px; overflow-y: auto; font-size: 0.9em;"></ul>
+                <div id="ac-consumos-turno" class="contenido-acordeon" style="padding: 10px;">
+                    <div style="display: flex; gap: 8px;">
+                        <select id="select-consumo-turno" class="input-form" style="flex: 1;"></select>
+                        <button class="btn-modal btn-guardar" style="width: auto; padding: 10px 15px;" onclick="window.agregarConsumoTurno()">Añadir</button>
+                    </div>
+                    <ul id="lista-consumos-turno" class="scroll-interno" style="list-style: none; padding: 0; margin: 10px 0 0 0; max-height: 120px; overflow-y: auto; font-size: 0.9em;"></ul>
+                </div>
             </div>
 
             <div style="background: #242c36; padding: 15px; border-radius: 8px; border: 1px solid #2c3540; text-align: left; margin-bottom: 10px;">
@@ -406,6 +431,12 @@
         }
         let fechaSeleccionada = fechasValidas[0]; 
 
+        // Formatea la fecha del sistema (hoy) al mismo formato YYYY-MM-DD
+        function obtenerFechaHoy() {
+            let h = new Date();
+            return `${h.getFullYear()}-${(h.getMonth() + 1).toString().padStart(2, '0')}-${h.getDate().toString().padStart(2, '0')}`;
+        }
+
         function renderizarCalendarios() {
             const calJugador = document.getElementById('calendario-jugador');
             const calClub = document.getElementById('calendario-club');
@@ -450,12 +481,12 @@
         let inventarioGlobal = []; 
         let gastosGlobal = []; 
         let ingresosGlobal = []; 
-        let balancesGlobal = []; // Array para los cierres de caja guardados
+        let balancesGlobal = []; 
         
         let reservaSeleccionadaId = null; 
         let reservaEnProcesoHora = null;
 
-        // --- FUNCIONES ÚTILES ---
+        // --- FUNCIONES ÚTILES Y ACORDEONES ---
         window.aMinutos = function(horaStr) { let [h, m] = horaStr.split(':').map(Number); return (h * 60) + m; }
         window.sumarMinutos = function(horaStr, minutosAñadir) {
             let [h, m] = horaStr.split(':').map(Number); let total = (h * 60) + m + minutosAñadir;
@@ -479,13 +510,60 @@
             document.getElementById('pantalla-club').style.display = vista === 'club' ? 'block' : 'none';
             document.getElementById('btn-jugador').classList.toggle('activo', vista === 'jugador');
             document.getElementById('btn-club').classList.toggle('activo', vista === 'club');
+            
+            // Forzar actualización de la línea de tiempo si entra al club
+            if(vista === 'club') actualizarLineaDeTiempo();
         }
 
-        // --- MODAL INVENTARIO, GASTOS E INGRESOS ---
+        window.toggleAcordeon = function(id) {
+            const contenido = document.getElementById(id);
+            const flecha = document.getElementById('flecha-' + id);
+            if (contenido.classList.contains('abierto')) {
+                contenido.classList.remove('abierto');
+                flecha.innerText = '🔽';
+            } else {
+                contenido.classList.add('abierto');
+                flecha.innerText = '🔼';
+            }
+        }
+
+        // --- LÍNEA DE TIEMPO EN VIVO ---
+        function actualizarLineaDeTiempo() {
+            const linea = document.getElementById('linea-tiempo-actual');
+            if(!linea) return;
+
+            // Si no estamos viendo el día de hoy, la ocultamos
+            if (fechaSeleccionada !== obtenerFechaHoy()) {
+                linea.style.display = 'none';
+                return;
+            }
+
+            const ahora = new Date();
+            let mActuales = (ahora.getHours() * 60) + ahora.getMinutes();
+            let minInicioGrilla = window.aMinutos(primerTurno);
+            let minFinGrilla = window.aMinutos(ultimoTurno) + duracionGlobal; 
+            if (minFinGrilla <= minInicioGrilla) minFinGrilla += 1440;
+
+            // Si el horario actual está fuera del horario del club, no la mostramos
+            if (mActuales < minInicioGrilla || mActuales > minFinGrilla) {
+                linea.style.display = 'none';
+                return;
+            }
+
+            // Calcula la posición en píxeles. 50px es el alto del Header. 40px es el alto de 30 minutos.
+            let pixelesDesdeArriba = ((mActuales - minInicioGrilla) / 30) * 40 + 50;
+            
+            linea.style.top = `${pixelesDesdeArriba}px`;
+            linea.style.display = 'block';
+        }
+
+        // Actualiza la línea cada minuto automáticamente
+        setInterval(actualizarLineaDeTiempo, 60000);
+
+        // --- INVENTARIO, GASTOS E INGRESOS ---
         window.abrirModalFinanzas = function() { document.getElementById('modal-finanzas').style.display = 'flex'; }
         window.cerrarModalFinanzas = function() { document.getElementById('modal-finanzas').style.display = 'none'; }
 
-        // 1. Inventario
         window.agregarInventario = async function() {
             const nombre = document.getElementById('inv-nombre').value.trim();
             const categoria = document.getElementById('inv-categoria').value;
@@ -509,7 +587,6 @@
             });
         }
 
-        // 2. Gastos
         window.agregarGasto = async function() {
             const titulo = document.getElementById('gasto-titulo').value.trim();
             const desc = document.getElementById('gasto-desc').value.trim();
@@ -534,7 +611,6 @@
             });
         }
 
-        // 3. Ingresos Manuales + Turnos
         window.agregarIngreso = async function() {
             const titulo = document.getElementById('ingreso-titulo').value.trim();
             const efe = parseFloat(document.getElementById('ingreso-efectivo').value) || 0;
@@ -586,42 +662,29 @@
             });
         }
 
-        // 4. BALANCES Y CIERRES
         window.generarBalance = async function() {
             const titulo = document.getElementById('balance-titulo').value.trim();
             const periodoDias = document.getElementById('balance-periodo').value;
-            
-            if(!titulo || !periodoDias) { alert("Completa Nombre del Balance y selecciona el Período."); return; }
+            if(!titulo || !periodoDias) { alert("Completa Nombre del Balance y Período."); return; }
 
             let fechaLimite = new Date();
             if (periodoDias !== "todo") {
                 fechaLimite.setDate(fechaLimite.getDate() - parseInt(periodoDias));
-            } else {
-                fechaLimite = new Date(2000, 0, 1); 
-            }
+            } else { fechaLimite = new Date(2000, 0, 1); }
 
-            let totalIngresos = 0;
-            let totalGastos = 0;
+            let totalIngresos = 0; let totalGastos = 0;
 
             reservasGlobales.forEach(res => {
                 let fr = getDateFromFirebase(res.fechaRegistro);
-                if(fr >= fechaLimite) {
-                    totalIngresos += (parseFloat(res.pagoEfectivo) || 0) + (parseFloat(res.pagoTransferencia) || 0);
-                }
+                if(fr >= fechaLimite) totalIngresos += (parseFloat(res.pagoEfectivo) || 0) + (parseFloat(res.pagoTransferencia) || 0);
             });
-
             ingresosGlobal.forEach(ing => {
                 let fr = getDateFromFirebase(ing.fechaRegistro);
-                if(fr >= fechaLimite) {
-                    totalIngresos += (parseFloat(ing.efectivo) || 0) + (parseFloat(ing.transferencia) || 0);
-                }
+                if(fr >= fechaLimite) totalIngresos += (parseFloat(ing.efectivo) || 0) + (parseFloat(ing.transferencia) || 0);
             });
-
             gastosGlobal.forEach(gasto => {
                 let fr = getDateFromFirebase(gasto.fechaRegistro);
-                if(fr >= fechaLimite) {
-                    totalGastos += parseFloat(gasto.importe) || 0;
-                }
+                if(fr >= fechaLimite) totalGastos += parseFloat(gasto.importe) || 0;
             });
 
             let gananciaNeta = totalIngresos - totalGastos;
@@ -629,31 +692,20 @@
 
             try {
                 await addDoc(collection(db, "balances"), {
-                    titulo: titulo,
-                    periodoTexto: textoPeriodo,
-                    ingresos: totalIngresos,
-                    gastos: totalGastos,
-                    ganancia: gananciaNeta,
-                    fechaCreacion: serverTimestamp()
+                    titulo: titulo, periodoTexto: textoPeriodo, ingresos: totalIngresos, gastos: totalGastos,
+                    ganancia: gananciaNeta, fechaCreacion: serverTimestamp()
                 });
-                document.getElementById('balance-titulo').value = '';
-                document.getElementById('balance-periodo').value = '';
+                document.getElementById('balance-titulo').value = ''; document.getElementById('balance-periodo').value = '';
             } catch (e) { alert("Error al guardar el balance."); }
         }
 
-        window.eliminarBalance = async function(id) {
-            if(confirm("¿Seguro que deseas borrar este registro de balance?")) await deleteDoc(doc(db, "balances", id));
-        }
+        window.eliminarBalance = async function(id) { if(confirm("¿Borrar este balance?")) await deleteDoc(doc(db, "balances", id)); }
 
         function renderizarBalances() {
             const tbody = document.getElementById('tabla-balances');
             if(!tbody) return;
             tbody.innerHTML = '';
-            
-            if(balancesGlobal.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #9ca3af; padding: 15px;">No hay balances calculados aún.</td></tr>';
-                return;
-            }
+            if(balancesGlobal.length === 0) { tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #9ca3af; padding: 15px;">No hay balances</td></tr>'; return; }
 
             balancesGlobal.sort((a,b) => (b.fechaCreacion?.seconds || 0) - (a.fechaCreacion?.seconds || 0)).forEach(bal => {
                 let colorGanancia = bal.ganancia >= 0 ? "#10b981" : "#ef4444";
@@ -675,16 +727,13 @@
             renderizarInventario(); if(reservaSeleccionadaId) renderizarModalTurnoAcciones(); 
         });
         onSnapshot(collection(db, "gastos"), (snapshot) => {
-            gastosGlobal = []; snapshot.forEach((doc) => gastosGlobal.push({ id: doc.id, ...doc.data() }));
-            renderizarGastos(); 
+            gastosGlobal = []; snapshot.forEach((doc) => gastosGlobal.push({ id: doc.id, ...doc.data() })); renderizarGastos(); 
         });
         onSnapshot(collection(db, "ingresos"), (snapshot) => {
-            ingresosGlobal = []; snapshot.forEach((doc) => ingresosGlobal.push({ id: doc.id, ...doc.data() }));
-            renderizarIngresos(); 
+            ingresosGlobal = []; snapshot.forEach((doc) => ingresosGlobal.push({ id: doc.id, ...doc.data() })); renderizarIngresos(); 
         });
         onSnapshot(collection(db, "balances"), (snapshot) => {
-            balancesGlobal = []; snapshot.forEach((doc) => balancesGlobal.push({ id: doc.id, ...doc.data() }));
-            renderizarBalances(); 
+            balancesGlobal = []; snapshot.forEach((doc) => balancesGlobal.push({ id: doc.id, ...doc.data() })); renderizarBalances(); 
         });
 
         // --- GESTIÓN DE TURNOS (PUNTO DE VENTA) ---
@@ -805,10 +854,23 @@
         window.abrirModalMetricas = function() { document.getElementById('modal-metricas').style.display = 'flex'; }
         window.cerrarModalMetricas = function() { document.getElementById('modal-metricas').style.display = 'none'; }
 
+        // Función que verifica si una hora ya pasó en el día de hoy
+        function esHoraPasada(horaStr) {
+            if (fechaSeleccionada !== obtenerFechaHoy()) return false; // Solo bloquea para hoy
+            const ahora = new Date();
+            let mActuales = (ahora.getHours() * 60) + ahora.getMinutes();
+            let mTurno = window.aMinutos(horaStr);
+            return mTurno <= mActuales; // Si la hora del turno es menor o igual a la actual, ya pasó
+        }
+
         window.abrirModalReservaJugador = function(hora) {
+            // Validar límite del club
             let minInicio = window.aMinutos(hora);
             let minUltimo = window.aMinutos(ultimoTurno);
             if (minInicio > minUltimo) { alert("Horario excede el límite del club."); return; }
+
+            // Validar si la hora ya pasó
+            if(esHoraPasada(hora)) { alert("No puedes reservar un horario que ya pasó."); return; }
 
             reservaEnProcesoHora = hora;
             const partes = fechaSeleccionada.split('-');
@@ -976,6 +1038,9 @@
                 const numBloquesNuevo = duracionGlobal / 30;
 
                 horariosFiltrados.forEach(hora => {
+                    // Filtrar horarios que ya pasaron si es el día de hoy
+                    if(esHoraPasada(hora)) return;
+
                     let bloquesNuevos = [];
                     for(let b=0; b < numBloquesNuevo; b++) { bloquesNuevos.push(window.sumarMinutos(hora, b * 30)); }
                     
@@ -1026,6 +1091,9 @@
 
             let htmlGrilla = `<div class="contenedor-grilla">`;
             
+            // DIV para la línea de tiempo en vivo
+            htmlGrilla += `<div id="linea-tiempo-actual"></div>`;
+
             htmlGrilla += `<div style="width: 55px; flex-shrink: 0; border-right: 1px solid #2c3540; background: #1e252d;">`;
             htmlGrilla += `<div style="height: 50px; border-bottom: 1px solid #2c3540; background: #242c36;"></div>`; 
             for (let m = minActual; m < minFin; m += 30) {
@@ -1109,6 +1177,7 @@
             htmlGrilla += `</div>`; 
 
             contenedorClub.innerHTML = htmlGrilla;
+            actualizarLineaDeTiempo(); // Llama a la función de la línea cada vez que se renderiza la grilla
         }
 
         renderizarCalendarios();
