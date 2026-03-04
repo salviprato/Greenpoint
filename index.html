@@ -88,6 +88,14 @@
             background: #1e252d; padding: 25px; border-radius: 12px; width: 90%; max-width: 360px;
             display: flex; flex-direction: column; gap: 12px; border: 1px solid #44505d; text-align: center;
         }
+        
+        /* Modal Finanzas específico (más espacio y scroll) */
+        #modal-finanzas .modal-content {
+            max-width: 550px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
         .input-form {
             padding: 10px; border-radius: 6px; border: 1px solid #44505d; background-color: #171d24; 
             color: white; color-scheme: dark; font-family: inherit; width: 100%; box-sizing: border-box;
@@ -96,6 +104,7 @@
         
         .btn-fijar { background-color: #10b981; } .btn-fijar:hover { background-color: #059669; }
         .btn-guardar { background-color: #10b981; } .btn-guardar:hover { background-color: #059669; }
+        .btn-gasto { background-color: #ef4444; } .btn-gasto:hover { background-color: #dc2626; }
         .btn-eliminar { background-color: #ef4444; } .btn-eliminar:hover { background-color: #dc2626; }
         .btn-whatsapp { background-color: #25d366; } .btn-whatsapp:hover { background-color: #1ebd57; }
         .btn-excepcion { background-color: #f59e0b; color: #171d24;} .btn-excepcion:hover { background-color: #d97706; }
@@ -106,7 +115,7 @@
         
         .checkbox-dias label { cursor: pointer; }
         
-        /* Estilos específicos para la tabla de inventario */
+        /* Estilos Tablas */
         table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
         th { padding: 8px; text-align: left; border-bottom: 2px solid #44505d; color: #9ca3af; }
         td { padding: 8px; border-bottom: 1px solid #2c3540; }
@@ -168,19 +177,28 @@
     </div>
 
     <div id="modal-finanzas" class="modal-overlay">
-        <div class="modal-content" style="max-width: 500px;"> <h3 style="margin: 0; margin-bottom: 15px; border-bottom: 1px solid #44505d; padding-bottom: 10px;">💰 Finanzas e Inventario</h3>
+        <div class="modal-content scroll-interno"> 
+            <h3 style="margin: 0; margin-bottom: 15px; border-bottom: 1px solid #44505d; padding-bottom: 10px;">💰 Finanzas e Inventario</h3>
             
             <div style="text-align: left;">
-                <h4 style="margin: 0 0 10px 0; color: #3b82f6;">Establecer Inventario</h4>
+                
+                <h4 style="margin: 0 0 10px 0; color: #3b82f6;">📦 Establecer Inventario</h4>
                 
                 <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-                    <input type="text" id="inv-nombre" class="input-form" placeholder="Producto (Ej: Agua)" style="flex: 2;">
-                    <input type="text" id="inv-categoria" class="input-form" placeholder="Categoría (Ej: Bebida)" style="flex: 2;">
+                    <input type="text" id="inv-nombre" class="input-form" placeholder="Producto" style="flex: 2;">
+                    
+                    <select id="inv-categoria" class="input-form" style="flex: 2;">
+                        <option value="" disabled selected>Categoría...</option>
+                        <option value="Bebidas">Bebidas</option>
+                        <option value="Comida">Comida</option>
+                        <option value="Padel/Tenis">Padel/Tenis</option>
+                    </select>
+
                     <input type="number" id="inv-precio" class="input-form" placeholder="Precio $" style="flex: 1;">
                 </div>
                 <button class="btn-modal btn-guardar" onclick="window.agregarInventario()" style="margin-bottom: 20px;">Añadir al Inventario</button>
 
-                <div class="scroll-interno" style="max-height: 200px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
+                <div class="scroll-interno" style="max-height: 150px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
                     <table>
                         <thead>
                             <tr>
@@ -190,10 +208,36 @@
                                 <th style="text-align: center;">Borrar</th>
                             </tr>
                         </thead>
-                        <tbody id="tabla-inventario">
-                            </tbody>
+                        <tbody id="tabla-inventario"></tbody>
                     </table>
                 </div>
+
+                <hr style="border: 0; border-top: 1px solid #44505d; margin: 25px 0;">
+
+                <h4 style="margin: 0 0 10px 0; color: #ef4444;">💸 Gastos Externos del Club</h4>
+                
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                    <input type="text" id="gasto-titulo" class="input-form" placeholder="Título (Ej: Luz, Pelotas)" style="flex: 1;">
+                    <input type="number" id="gasto-importe" class="input-form" placeholder="Importe Gastado $" style="flex: 1;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <input type="text" id="gasto-desc" class="input-form" placeholder="Descripción corta (Opcional)">
+                </div>
+                <button class="btn-modal btn-gasto" onclick="window.agregarGasto()" style="margin-bottom: 20px;">Registrar Gasto</button>
+
+                <div class="scroll-interno" style="max-height: 150px; overflow-y: auto; border: 1px solid #2c3540; border-radius: 6px; padding: 5px; background: #171d24;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Detalle del Gasto</th>
+                                <th style="text-align: right;">Importe</th>
+                                <th style="text-align: center;">Borrar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-gastos"></tbody>
+                    </table>
+                </div>
+
             </div>
 
             <button class="btn-modal btn-cerrar" style="margin-top: 20px;" onclick="window.cerrarModalFinanzas()">Cerrar</button>
@@ -270,7 +314,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAMRLDlarJiomWY4IX5c6CR3RFWHqmMu30",
@@ -327,7 +371,7 @@
         }
         horariosBase.reverse(); 
 
-        // Variables Globales de Configuración
+        // Variables Globales
         let primerTurno = "08:00"; 
         let ultimoTurno = "21:30";   
         let duracionGlobal = 90; 
@@ -338,7 +382,8 @@
         let diasAbiertosGlobal = [0,1,2,3,4,5,6]; 
 
         let reservasGlobales = [];
-        let inventarioGlobal = []; // Array para guardar los productos
+        let inventarioGlobal = []; 
+        let gastosGlobal = []; // Array para los gastos externos
         let reservaSeleccionadaId = null; 
         let reservaEnProcesoHora = null;
 
@@ -365,9 +410,10 @@
         window.abrirModalFinanzas = function() { document.getElementById('modal-finanzas').style.display = 'flex'; }
         window.cerrarModalFinanzas = function() { document.getElementById('modal-finanzas').style.display = 'none'; }
 
+        // 1. Funciones de Inventario
         window.agregarInventario = async function() {
             const nombre = document.getElementById('inv-nombre').value.trim();
-            const categoria = document.getElementById('inv-categoria').value.trim();
+            const categoria = document.getElementById('inv-categoria').value;
             const precio = document.getElementById('inv-precio').value;
 
             if(!nombre || !categoria || !precio) {
@@ -381,13 +427,10 @@
                     categoria: categoria,
                     precio: parseFloat(precio)
                 });
-                // Limpiar campos
                 document.getElementById('inv-nombre').value = '';
                 document.getElementById('inv-categoria').value = '';
                 document.getElementById('inv-precio').value = '';
-            } catch (error) {
-                alert("Error al guardar el producto.");
-            }
+            } catch (error) { alert("Error al guardar el producto."); }
         }
 
         window.eliminarInventario = async function(id) {
@@ -406,7 +449,6 @@
                 return;
             }
 
-            // Ordenamos alfabéticamente por nombre
             inventarioGlobal.sort((a, b) => a.nombre.localeCompare(b.nombre)).forEach(prod => {
                 tbody.innerHTML += `
                     <tr>
@@ -421,11 +463,75 @@
             });
         }
 
-        // Listener para Inventario
         onSnapshot(collection(db, "inventario"), (snapshot) => {
             inventarioGlobal = [];
             snapshot.forEach((doc) => inventarioGlobal.push({ id: doc.id, ...doc.data() }));
             renderizarInventario(); 
+        });
+
+        // 2. Funciones de Gastos Externos
+        window.agregarGasto = async function() {
+            const titulo = document.getElementById('gasto-titulo').value.trim();
+            const desc = document.getElementById('gasto-desc').value.trim();
+            const importe = document.getElementById('gasto-importe').value;
+
+            if(!titulo || !importe) {
+                alert("Por favor, completa el Título y el Importe del gasto.");
+                return;
+            }
+
+            try {
+                await addDoc(collection(db, "gastos"), {
+                    titulo: titulo,
+                    descripcion: desc,
+                    importe: parseFloat(importe),
+                    fechaRegistro: serverTimestamp() // Usa la hora del servidor para ordenarlos
+                });
+                document.getElementById('gasto-titulo').value = '';
+                document.getElementById('gasto-desc').value = '';
+                document.getElementById('gasto-importe').value = '';
+            } catch (error) { alert("Error al registrar el gasto."); }
+        }
+
+        window.eliminarGasto = async function(id) {
+            if(confirm("¿Seguro que quieres eliminar este gasto?")) {
+                await deleteDoc(doc(db, "gastos", id));
+            }
+        }
+
+        function renderizarGastos() {
+            const tbody = document.getElementById('tabla-gastos');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            
+            if(gastosGlobal.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: #9ca3af; padding: 15px;">No hay gastos registrados</td></tr>';
+                return;
+            }
+
+            // Ordenar por los más recientes primero
+            gastosGlobal.sort((a, b) => {
+                let timeA = a.fechaRegistro ? a.fechaRegistro.seconds : 0;
+                let timeB = b.fechaRegistro ? b.fechaRegistro.seconds : 0;
+                return timeB - timeA; 
+            }).forEach(gasto => {
+                let descHtml = gasto.descripcion ? `<br><small style="color:#9ca3af; font-size:0.85em;">${gasto.descripcion}</small>` : '';
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${gasto.titulo}</strong>${descHtml}</td>
+                        <td style="text-align: right; color: #ef4444; font-weight: bold;">$${gasto.importe}</td>
+                        <td style="text-align: center;">
+                            <button onclick="window.eliminarGasto('${gasto.id}')" style="background: none; border: none; cursor: pointer; font-size: 1.1em;" title="Borrar">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        onSnapshot(collection(db, "gastos"), (snapshot) => {
+            gastosGlobal = [];
+            snapshot.forEach((doc) => gastosGlobal.push({ id: doc.id, ...doc.data() }));
+            renderizarGastos(); 
         });
         // ---------------------------------------------------
 
