@@ -2355,10 +2355,10 @@
 
         renderizarCalendarios();
 // =========================================================
-        // --- NUEVO MÓDULO: RANKING Y COMPETICIÓN (ACTUALIZADO) ---
+        // --- NUEVO MÓDULO: RANKING Y MATCHMAKING COMPETITIVO ---
         // =========================================================
 
-        // 1. Inyectar Botón en la botonera existente (Si no existe ya)
+        // 1. Inyectar Botón en la botonera existente (Si no existe)
         if (!document.getElementById('btn-ranking')) {
             const controles = document.querySelector('.controles-vista');
             controles.insertAdjacentHTML('beforeend', `
@@ -2366,7 +2366,7 @@
             `);
         }
 
-        // 2. Inyectar la nueva vista y modales
+        // 2. Inyectar la vista principal y los modales
         if (!document.getElementById('pantalla-ranking')) {
             const body = document.querySelector('body');
             body.insertAdjacentHTML('beforeend', `
@@ -2378,7 +2378,7 @@
                     
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-top: 1px solid #2c3540; padding-top: 15px;">
                         <span style="font-size: 0.9em; color: #9ca3af; font-weight: bold;">Tabla General de Posiciones</span>
-                        <button class="btn-modal btn-guardar" style="width: auto; padding: 6px 12px; font-size: 0.8em; background-color: #4b5563;" onclick="window.abrirModalNuevoJugadorRanking()">+ Añadir Jugador Manual</button>
+                        <button class="btn-modal btn-guardar" style="width: auto; padding: 6px 12px; font-size: 0.8em; background-color: #4b5563;" onclick="window.abrirModalNuevoJugadorRanking()">+ Añadir Manual</button>
                     </div>
 
                     <div class="scroll-interno" style="background: #242c36; border-radius: 8px; border: 1px solid #2c3540; padding: 5px;">
@@ -2411,10 +2411,13 @@
                 </div>
 
                 <div id="modal-jugar-competitivo" class="modal-overlay" style="z-index: 1250;">
-                    <div class="modal-content" style="max-width: 400px;">
-                        <h3 style="margin: 0; margin-bottom: 15px; border-bottom: 1px solid #44505d; padding-bottom: 10px; color: #f59e0b;">🔥 Buscar Partido Competitivo</h3>
+                    <div class="modal-content" style="max-width: 400px; padding: 20px;">
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #2c3540; padding-bottom: 15px;">
+                            <button id="tab-btn-crear" class="btn-vista activo" style="flex: 1; padding: 10px; font-size: 0.9em; background-color: #f59e0b; border-color: #f59e0b;" onclick="window.cambiarTabCompetitivo('crear')">➕ Crear Partido</button>
+                            <button id="tab-btn-unirse" class="btn-vista" style="flex: 1; padding: 10px; font-size: 0.9em; background-color: #242c36; border-color: #44505d;" onclick="window.cambiarTabCompetitivo('unirse')">🤝 Unirse</button>
+                        </div>
                         
-                        <div style="text-align: left; display: flex; flex-direction: column; gap: 12px;">
+                        <div id="tab-crear-partido" style="text-align: left; display: flex; flex-direction: column; gap: 12px;">
                             <div>
                                 <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Tu Nombre / Jugador 1:</label>
                                 <input type="text" id="comp-nombre-jugador" class="input-form" placeholder="Ej: Tu nombre..." style="margin-top: 4px;">
@@ -2438,15 +2441,15 @@
                                     </select>
                                 </div>
                                 <div style="flex: 1;">
-                                    <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">3. Horario (Aprox):</label>
+                                    <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">3. Horario:</label>
                                     <input type="time" id="comp-hora" class="input-form" style="margin-top: 4px;">
                                 </div>
                             </div>
 
                             <div>
-                                <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">4. Modalidad de Pareja:</label>
-                                <select id="comp-pareja" class="input-form" style="margin-top: 4px;" onchange="window.toggleAmigoInput()">
-                                    <option value="random">🎲 Pareja Random (Matchmaking)</option>
+                                <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">4. Tu Pareja:</label>
+                                <select id="comp-pareja" class="input-form" style="margin-top: 4px;" onchange="window.toggleAmigoInput('comp-pareja', 'div-amigo-comp')">
+                                    <option value="random">🎲 Pareja Random</option>
                                     <option value="amigo">🤝 Invitar a un amigo</option>
                                 </select>
                             </div>
@@ -2455,10 +2458,47 @@
                                 <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Nombre de tu compañero/a:</label>
                                 <input type="text" id="comp-nombre-amigo" class="input-form" placeholder="Ej: Martín Perez" style="margin-top: 4px;">
                             </div>
+
+                            <button class="btn-modal btn-guardar" style="margin-top: 15px; background-color: #f59e0b;" onclick="window.confirmarCrearCompetitivo()">Crear e ir a Lista de Espera</button>
                         </div>
 
-                        <button class="btn-modal btn-guardar" style="margin-top: 25px; background-color: #f59e0b;" onclick="window.confirmarJugarCompetitivo()">Unirse a la Lista de Espera</button>
-                        <button class="btn-modal btn-cerrar" style="margin-top: 10px;" onclick="window.cerrarModalJugarCompetitivo()">Cancelar</button>
+                        <div id="tab-unirse-partido" style="display: none; text-align: left;">
+                            <p style="font-size: 0.85em; color: #9ca3af; margin-top: 0; margin-bottom: 10px;">Partidos creados buscando rivales (Anónimo):</p>
+                            <div id="lista-partidos-abiertos" class="scroll-interno" style="max-height: 250px; overflow-y: auto;">
+                                </div>
+                        </div>
+
+                        <button class="btn-modal btn-cerrar" style="margin-top: 15px;" onclick="window.cerrarModalJugarCompetitivo()">Cerrar</button>
+                    </div>
+                </div>
+
+                <div id="modal-unirse-detalle" class="modal-overlay" style="z-index: 1300;">
+                    <div class="modal-content" style="max-width: 350px;">
+                        <h3 style="margin: 0; margin-bottom: 5px; color: #f59e0b;">Unirse al Partido</h3>
+                        <p id="lbl-unirse-info" style="color: #9ca3af; font-size: 0.85em; margin-bottom: 15px; border-bottom: 1px solid #44505d; padding-bottom: 10px;"></p>
+                        
+                        <input type="hidden" id="unirse-partido-id">
+
+                        <div style="text-align: left; display: flex; flex-direction: column; gap: 10px;">
+                            <div>
+                                <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Tu Nombre:</label>
+                                <input type="text" id="unirse-nombre" class="input-form" placeholder="Ej: Tu nombre..." style="margin-top: 4px;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Tu Pareja:</label>
+                                <select id="unirse-pareja" class="input-form" style="margin-top: 4px;" onchange="window.toggleAmigoInput('unirse-pareja', 'div-amigo-unirse')">
+                                    <option value="random">🎲 Pareja Random</option>
+                                    <option value="amigo">🤝 Invitar a un amigo</option>
+                                </select>
+                            </div>
+                            <div id="div-amigo-unirse" style="display: none;">
+                                <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Nombre de tu compañero/a:</label>
+                                <input type="text" id="unirse-nombre-amigo" class="input-form" placeholder="Ej: Juan" style="margin-top: 4px;">
+                            </div>
+                        </div>
+
+                        <button class="btn-modal btn-guardar" style="margin-top: 20px; background-color: #10b981;" onclick="window.confirmarUnirsePartido()">Confirmar Partido</button>
+                        <button class="btn-modal btn-cerrar" style="margin-top: 10px;" onclick="window.cerrarModalUnirseDetalle()">Cancelar</button>
                     </div>
                 </div>
             `);
@@ -2476,27 +2516,44 @@
             }
         };
 
-        // 4. Lógica de UI para Jugar Competitivo
+        // 4. Lógica de UI para los Tabs y Modales
         window.abrirModalJugarCompetitivo = function() {
-            document.getElementById('comp-nombre-jugador').value = '';
-            document.getElementById('comp-hora').value = '';
-            document.getElementById('comp-nombre-amigo').value = '';
-            document.getElementById('comp-pareja').value = 'random';
-            window.toggleAmigoInput();
+            window.cambiarTabCompetitivo('crear');
             document.getElementById('modal-jugar-competitivo').style.display = 'flex';
         };
-
         window.cerrarModalJugarCompetitivo = function() {
             document.getElementById('modal-jugar-competitivo').style.display = 'none';
         };
 
-        window.toggleAmigoInput = function() {
-            const select = document.getElementById('comp-pareja').value;
-            const divAmigo = document.getElementById('div-amigo-comp');
+        window.cambiarTabCompetitivo = function(tab) {
+            const btnCrear = document.getElementById('tab-btn-crear');
+            const btnUnirse = document.getElementById('tab-btn-unirse');
+            const divCrear = document.getElementById('tab-crear-partido');
+            const divUnirse = document.getElementById('tab-unirse-partido');
+
+            if (tab === 'crear') {
+                btnCrear.style.backgroundColor = '#f59e0b'; btnCrear.style.borderColor = '#f59e0b';
+                btnUnirse.style.backgroundColor = '#242c36'; btnUnirse.style.borderColor = '#44505d';
+                divCrear.style.display = 'flex';
+                divUnirse.style.display = 'none';
+            } else {
+                btnUnirse.style.backgroundColor = '#f59e0b'; btnUnirse.style.borderColor = '#f59e0b';
+                btnCrear.style.backgroundColor = '#242c36'; btnCrear.style.borderColor = '#44505d';
+                divUnirse.style.display = 'block';
+                divCrear.style.display = 'none';
+                window.renderizarPartidosAbiertos(); // Refresca la lista al entrar a la pestaña
+            }
+        };
+
+        // Función genérica para mostrar/ocultar input de amigo
+        window.toggleAmigoInput = function(selectId, divId) {
+            const select = document.getElementById(selectId).value;
+            const divAmigo = document.getElementById(divId);
             divAmigo.style.display = select === 'amigo' ? 'block' : 'none';
         };
 
-        window.confirmarJugarCompetitivo = async function() {
+        // --- CREAR PARTIDO (Lado A) ---
+        window.confirmarCrearCompetitivo = async function() {
             const jugador = document.getElementById('comp-nombre-jugador').value.trim();
             const club = document.getElementById('comp-club').value;
             const cancha = document.getElementById('comp-cancha').value;
@@ -2504,55 +2561,117 @@
             const modalidad = document.getElementById('comp-pareja').value;
             const amigo = document.getElementById('comp-nombre-amigo').value.trim();
 
-            if (!jugador || !hora) { alert("Completa tu nombre y el horario preferido para jugar."); return; }
+            if (!jugador || !hora) { alert("Completa tu nombre y el horario preferido."); return; }
             if (modalidad === 'amigo' && !amigo) { alert("Ingresa el nombre de tu compañero."); return; }
 
-            const btn = document.querySelector('#modal-jugar-competitivo .btn-guardar');
-            btn.innerText = "Anotando..."; btn.disabled = true;
-
             try {
-                // Guarda la solicitud en una nueva colección "matchmaking"
                 await addDoc(collection(db, "matchmaking"), {
-                    jugadorPrincipal: jugador,
+                    creadorPrincipal: jugador,
+                    creadorModalidad: modalidad,
+                    creadorCompañero: modalidad === 'amigo' ? amigo : 'Random',
                     clubSeleccionado: club,
                     tipoCancha: cancha,
                     horaDeseada: hora,
-                    modalidad: modalidad,
-                    compañero: modalidad === 'amigo' ? amigo : 'Esperando asignación...',
                     fechaSolicitud: serverTimestamp(),
-                    estado: 'Buscando Rival'
+                    estado: 'Buscando Rival' // Clave para que aparezca en la lista "Unirse"
                 });
                 
-                alert("¡Te anotaste en la lista competitiva con éxito!\nTe notificaremos cuando se arme el partido en " + club + ".");
-                window.cerrarModalJugarCompetitivo();
-            } catch (error) {
-                alert("Hubo un error al intentar anotar tu solicitud.");
-            } finally {
-                btn.innerText = "Unirse a la Lista de Espera"; btn.disabled = false;
+                alert("¡Partido creado! Estás en la lista de espera aguardando rivales.");
+                document.getElementById('comp-nombre-jugador').value = '';
+                document.getElementById('comp-hora').value = '';
+                window.cambiarTabCompetitivo('unirse'); // Lo mandamos a ver su partido publicado
+            } catch (error) { alert("Error al anotar tu solicitud."); }
+        };
+
+        // --- UNIRSE A PARTIDO (Lado B) ---
+        let matchmakingGlobal = []; // Variable para guardar los partidos en tiempo real
+
+        window.renderizarPartidosAbiertos = function() {
+            const contenedor = document.getElementById('lista-partidos-abiertos');
+            if (!contenedor) return;
+            contenedor.innerHTML = '';
+
+            // Filtramos solo los que buscan rival
+            const abiertos = matchmakingGlobal.filter(m => m.estado === 'Buscando Rival');
+
+            if (abiertos.length === 0) {
+                contenedor.innerHTML = '<div style="text-align:center; padding: 20px; color:#9ca3af;">No hay partidos buscando rival en este momento. Animate y creá uno en la otra pestaña.</div>';
+                return;
             }
+
+            // Renderizamos ocultando los nombres (Solo Club, Hora y Cancha)
+            abiertos.sort((a,b) => (a.horaDeseada > b.horaDeseada) ? 1 : -1).forEach(m => {
+                contenedor.innerHTML += `
+                    <div style="background: #1e252d; border: 1px solid #44505d; padding: 12px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; transition: 0.2s;" onmouseover="this.style.borderColor='#f59e0b'" onmouseout="this.style.borderColor='#44505d'">
+                        <div>
+                            <div style="font-weight: bold; color: #f59e0b; font-size: 1.2em;">${m.horaDeseada} hs</div>
+                            <div style="color: #d1d5db; font-size: 0.9em; margin-top: 2px;">📍 ${m.clubSeleccionado} | 🎾 ${m.tipoCancha}</div>
+                            <div style="color: #9ca3af; font-size: 0.75em; margin-top: 4px;">Rivales anónimos esperando...</div>
+                        </div>
+                        <button class="btn-modal btn-guardar" style="width: auto; padding: 8px 15px; font-size: 0.85em; background-color: #10b981;" onclick="window.abrirModalUnirseDetalle('${m.id}', '${m.clubSeleccionado}', '${m.horaDeseada}', '${m.tipoCancha}')">Jugar Acá</button>
+                    </div>
+                `;
+            });
         };
 
-        // 5. Lógica de Base de Datos y UI para el Ranking General
-        let rankingGlobal = [];
-
-        window.abrirModalNuevoJugadorRanking = function() {
-            document.getElementById('input-nombre-ranking').value = '';
-            document.getElementById('modal-nuevo-jugador-ranking').style.display = 'flex';
+        window.abrirModalUnirseDetalle = function(id, club, hora, cancha) {
+            document.getElementById('unirse-partido-id').value = id;
+            document.getElementById('lbl-unirse-info').innerHTML = `📍 <strong>${club}</strong> - 🎾 ${cancha} - ⌚ <strong>${hora} hs</strong>`;
+            document.getElementById('unirse-nombre').value = '';
+            document.getElementById('unirse-nombre-amigo').value = '';
+            document.getElementById('unirse-pareja').value = 'random';
+            window.toggleAmigoInput('unirse-pareja', 'div-amigo-unirse');
+            
+            document.getElementById('modal-unirse-detalle').style.display = 'flex';
         };
 
-        window.cerrarModalNuevoJugadorRanking = function() {
-            document.getElementById('modal-nuevo-jugador-ranking').style.display = 'none';
+        window.cerrarModalUnirseDetalle = function() {
+            document.getElementById('modal-unirse-detalle').style.display = 'none';
         };
 
+        window.confirmarUnirsePartido = async function() {
+            const id = document.getElementById('unirse-partido-id').value;
+            const nombre = document.getElementById('unirse-nombre').value.trim();
+            const modalidad = document.getElementById('unirse-pareja').value;
+            const amigo = document.getElementById('unirse-nombre-amigo').value.trim();
+
+            if (!nombre) { alert("Ingresa tu nombre."); return; }
+            if (modalidad === 'amigo' && !amigo) { alert("Ingresa el nombre de tu compañero."); return; }
+
+            try {
+                // Actualiza el documento agregando a la pareja B y cambiando el estado
+                await updateDoc(doc(db, "matchmaking", id), {
+                    rivalPrincipal: nombre,
+                    rivalModalidad: modalidad,
+                    rivalCompañero: modalidad === 'amigo' ? amigo : 'Random',
+                    estado: 'Partido Confirmado' // Pasa a confirmado, desaparece de la lista "Unirse"
+                });
+                
+                alert("¡Te uniste al partido exitosamente! El administrador ya tiene los datos para reservar la cancha.");
+                window.cerrarModalUnirseDetalle();
+                window.cerrarModalJugarCompetitivo();
+            } catch(e) { alert("Error al unirse al partido."); }
+        };
+
+        // 5. Escuchar Base de Datos (Ranking y Matchmaking)
+        onSnapshot(collection(db, "matchmaking"), (snapshot) => {
+            matchmakingGlobal = [];
+            snapshot.forEach((doc) => matchmakingGlobal.push({ id: doc.id, ...doc.data() }));
+            
+            // Si el tab "Unirse" está abierto, lo actualiza en tiempo real
+            if (document.getElementById('tab-unirse-partido') && document.getElementById('tab-unirse-partido').style.display === 'block') {
+                window.renderizarPartidosAbiertos();
+            }
+        });
+
+        // (La lógica del ranking manual se mantiene igual a la que te pasé antes)
         window.guardarJugadorRanking = async function() {
             const nombre = document.getElementById('input-nombre-ranking').value.trim();
-            if (!nombre) { alert("Ingresa un nombre."); return; }
+            if (!nombre) return;
             try {
-                await addDoc(collection(db, "ranking"), {
-                    nombre: nombre, puntos: 0, partidosJugados: 0, fechaInscripcion: serverTimestamp()
-                });
+                await addDoc(collection(db, "ranking"), { nombre: nombre, puntos: 0, partidosJugados: 0, fechaInscripcion: serverTimestamp() });
                 window.cerrarModalNuevoJugadorRanking();
-            } catch (error) { alert("Error al inscribir jugador."); }
+            } catch (error) {}
         };
 
         window.gestionarJugadorRanking = async function(id, nombre, puntos, pj) {
@@ -2561,11 +2680,8 @@
                 let ptsGanados = prompt(`Puntos actuales: ${puntos} | Partidos: ${pj}\n¿Cuántos puntos ganó en esta jornada?`);
                 if (ptsGanados === null || ptsGanados.trim() === "") return;
                 let valorPts = parseInt(ptsGanados);
-                if (isNaN(valorPts)) { alert("Ingresa un número válido."); return; }
-                
-                try {
-                    await updateDoc(doc(db, "ranking", id), { puntos: puntos + valorPts, partidosJugados: pj + 1 });
-                } catch(e) { alert("Error al actualizar puntos."); }
+                if (isNaN(valorPts)) return;
+                try { await updateDoc(doc(db, "ranking", id), { puntos: puntos + valorPts, partidosJugados: pj + 1 }); } catch(e) {}
             } else {
                 if(confirm(`¿ELIMINAR a ${nombre} del ranking permanentemente?`)) await deleteDoc(doc(db, "ranking", id));
             }
@@ -2579,14 +2695,12 @@
                 tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #9ca3af; padding: 15px;">No hay jugadores en el ranking aún.</td></tr>';
                 return;
             }
-
             rankingGlobal.sort((a, b) => {
                 if (b.puntos !== a.puntos) return b.puntos - a.puntos;
                 return a.partidosJugados - b.partidosJugados;
             }).forEach((jugador, index) => {
                 let posColor = index === 0 ? '#fbbf24' : (index === 1 ? '#9ca3af' : (index === 2 ? '#b45309' : '#d1d5db'));
                 let medalla = index === 0 ? '🥇 ' : (index === 1 ? '🥈 ' : (index === 2 ? '🥉 ' : `<span style="font-size:0.8em; color:#9ca3af">${index + 1}°</span> `));
-                
                 tbody.innerHTML += `
                     <tr style="cursor: pointer; transition: 0.1s; border-bottom: 1px solid #2c3540;" 
                         onmouseover="this.style.backgroundColor='#2c3540'" onmouseout="this.style.backgroundColor='transparent'" 
@@ -2605,7 +2719,7 @@
             snapshot.forEach((doc) => rankingGlobal.push({ id: doc.id, ...doc.data() }));
             renderizarRanking();
         });
-        // =========================================================        
+        // =========================================================
     </script>
 </body>
 </html>
