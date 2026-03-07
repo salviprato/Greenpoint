@@ -2709,13 +2709,11 @@
                     </div>
 
                     <div id="subvista-torneos" style="display: none;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-top: 1px solid #2c3540; padding-top: 15px;">
-                            <span style="font-size: 0.9em; color: #9ca3af; font-weight: bold;">Torneos Disponibles</span>
-                            <button class="btn-modal btn-guardar" style="width: auto; padding: 6px 12px; font-size: 0.8em; background-color: #8b5cf6;" onclick="window.abrirModalCrearTorneo()">+ Nuevo Torneo</button>
+                        <div style="margin-bottom: 10px; border-top: 1px solid #2c3540; padding-top: 15px;">
+                            <span style="font-size: 0.9em; color: #9ca3af; font-weight: bold;">Torneos Disponibles para Anotarse</span>
                         </div>
-                        <div id="lista-torneos" class="scroll-interno" style="background: #242c36; border-radius: 8px; border: 1px solid #2c3540; padding: 15px; text-align: center; color: #9ca3af; min-height: 100px; display: flex; align-items: center; justify-content: center;">
-                            Acá aparecerán las llaves y grupos de los torneos activos.
-                        </div>
+                        <div id="lista-torneos-publicos" class="scroll-interno" style="max-height: 400px; overflow-y: auto;">
+                            </div>
                     </div>
                 </div>
 
@@ -2838,6 +2836,25 @@
                         <button class="btn-modal btn-cerrar" style="margin-top: 20px;" onclick="window.cerrarModalResultado()">Cancelar</button>
                     </div>
                 </div>
+
+                <div id="modal-inscribirse-torneo" class="modal-overlay" style="z-index: 1350;">
+                    <div class="modal-content" style="max-width: 350px;">
+                        <h3 style="margin: 0; margin-bottom: 5px; color: #8b5cf6;">Anotarse al Torneo</h3>
+                        <p id="lbl-anotarse-torneo-info" style="color: #9ca3af; font-size: 0.85em; margin-bottom: 15px; border-bottom: 1px solid #44505d; padding-bottom: 10px;"></p>
+                        
+                        <input type="hidden" id="anotarse-torneo-id">
+
+                        <div style="text-align: left; display: flex; flex-direction: column; gap: 10px;">
+                            <div>
+                                <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Tu Nombre / Pareja:</label>
+                                <input type="text" id="anotarse-torneo-nombre" class="input-form" placeholder="Ej: Franco y Martín" style="margin-top: 4px;">
+                            </div>
+                        </div>
+
+                        <button class="btn-modal btn-guardar" style="margin-top: 20px; background-color: #8b5cf6;" onclick="window.confirmarInscripcionTorneo()">Confirmar Inscripción</button>
+                        <button class="btn-modal btn-cerrar" style="margin-top: 10px;" onclick="window.cerrarModalInscribirseTorneo()">Cancelar</button>
+                    </div>
+                </div>
             `);
         }
 
@@ -2866,14 +2883,11 @@
             } else {
                 btnT.style.backgroundColor = '#8b5cf6'; btnT.style.border = 'none';
                 btnR.style.backgroundColor = '#242c36'; btnR.style.border = '1px solid #44505d';
+                window.renderizarTorneosPublicos(); // Refresca la lista de torneos al abrir
             }
         };
 
-        window.abrirModalCrearTorneo = function() {
-            alert("¡Próximamente! Aquí podremos armar la creación automática de llaves (Cuartos, Semis, Final) y grupos.");
-        };
-
-        // Interceptar el cambio de fecha para refrescar los horarios si el modal está abierto
+        // Interceptar el cambio de fecha
         const seleccionarFechaBase = window.seleccionarFecha;
         window.seleccionarFecha = function(fechaISO) {
             seleccionarFechaBase(fechaISO);
@@ -3109,7 +3123,7 @@
             } catch(e) { alert("Error al confirmar el partido y crear la reserva."); }
         };
 
-        // --- RESULTADOS Y RANKING ---
+        // --- RESULTADOS ---
         window.renderizarPartidosResultados = function() {
             const contenedor = document.getElementById('lista-partidos-resultados');
             if (!contenedor) return;
@@ -3224,7 +3238,7 @@
             });
         };
 
-        // RENDERIZAR TABLA RANKING (Solo lectura)
+        // --- RENDERIZAR TABLA RANKING ---
         function renderizarRanking() {
             const tbody = document.getElementById('lista-ranking');
             if (!tbody) return;
@@ -3248,7 +3262,412 @@
             });
         }
 
-        // Suscripciones
+        // =========================================================
+        // --- NUEVA LÓGICA: VISTA JUGADOR PARA TORNEOS ---
+        // =========================================================
+
+        // Usamos una variable simple para guardar el nombre de quien está navegando y ver si está inscripto
+        // (Como no hay login, le pedimos el nombre al intentar anotarse o darse de baja, pero para mostrar 
+        // el botón condicional, vamos a basarnos en si la lista de inscriptos contiene un nombre que él provee,
+        // o más fácil: que el botón diga "Anotarme / Darme de Baja" y adentro valide).
+
+        window.renderizarTorneosPublicos = function() {
+            const div = document.getElementById('lista-torneos-publicos');
+            if(!div) return;
+            div.innerHTML = '';
+
+            // torneosAdminGlobal se alimenta en la suscripción del Admin y lo reutilizamos acá
+            const torneosActivos = torneosAdminGlobal.filter(t => t.fecha >= obtenerFechaHoy());
+
+            if(torneosActivos.length === 0) {
+                div.innerHTML = '<div style="color: #9ca3af; font-size: 0.9em; padding: 10px; text-align: center;">No hay torneos programados próximamente.</div>';
+                return;
+            }
+
+            torneosActivos.sort((a,b) => a.fecha > b.fecha ? 1 : -1).forEach(t => {
+                let inscriptos = t.inscriptos || [];
+                let insCount = inscriptos.length;
+                let cupo = t.cupo;
+                
+                let [y, m, d] = t.fecha.split('-');
+                let fechaLegible = `${d}/${m}/${y}`;
+                
+                let estaLleno = insCount >= cupo;
+                let colorCupo = estaLleno ? '#ef4444' : '#10b981';
+
+                div.innerHTML += `
+                    <div style="background: #1e252d; border: 1px solid #44505d; border-radius: 8px; padding: 15px; margin-bottom: 12px; text-align: left;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <div style="color: #8b5cf6; font-weight: bold; font-size: 1.15em;">🏆 ${t.nombre}</div>
+                                <div style="font-size: 0.85em; color: #d1d5db; margin-top: 4px;">📅 ${fechaLegible} | ⌚ ${t.horaInicio} a ${t.horaFin}</div>
+                                <div style="font-size: 0.85em; color: #9ca3af; margin-top: 2px;">📍 Orbit | 🎾 Canchas ${t.superficie}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.8em; color: #9ca3af;">Cupos ocupados</div>
+                                <div style="font-size: 1.2em; font-weight: bold; color: ${colorCupo};">${insCount} / ${cupo}</div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            <button class="btn-modal btn-guardar" style="flex: 1; padding: 8px; font-size: 0.9em; background-color: #8b5cf6;" onclick="window.abrirModalInscribirseTorneo('${t.id}', '${t.nombre}', ${estaLleno})">✍️ Gestionar mi Inscripción</button>
+                        </div>
+                    </div>
+                `;
+            });
+        };
+
+        window.abrirModalInscribirseTorneo = function(idTorneo, nombreTorneo, estaLleno) {
+            const t = torneosAdminGlobal.find(x => x.id === idTorneo);
+            if(!t) return;
+            
+            document.getElementById('anotarse-torneo-id').value = idTorneo;
+            document.getElementById('lbl-anotarse-torneo-info').innerText = `🏆 ${nombreTorneo}`;
+            document.getElementById('anotarse-torneo-nombre').value = '';
+            
+            // Modificamos el modal para explicarle al usuario que si pone su nombre y ya existe, lo borra.
+            const btnConfirmar = document.querySelector('#modal-inscribirse-torneo .btn-guardar');
+            
+            if (estaLleno) {
+                document.getElementById('lbl-anotarse-torneo-info').innerHTML += `<br><span style="color:#ef4444;">El torneo está lleno. Ingresá tu nombre solo si querés DARTE DE BAJA.</span>`;
+                btnConfirmar.innerText = "Darme de Baja";
+                btnConfirmar.style.backgroundColor = "#ef4444";
+            } else {
+                document.getElementById('lbl-anotarse-torneo-info').innerHTML += `<br>Ingresá tu nombre para <b>Anotarte</b>. Si ya estás inscripto y volvés a poner tu nombre, te <b>Daremos de Baja</b>.`;
+                btnConfirmar.innerText = "Confirmar Inscripción / Baja";
+                btnConfirmar.style.backgroundColor = "#8b5cf6";
+            }
+
+            document.getElementById('modal-inscribirse-torneo').style.display = 'flex';
+        };
+
+        window.cerrarModalInscribirseTorneo = function() {
+            document.getElementById('modal-inscribirse-torneo').style.display = 'none';
+        };
+
+        window.confirmarInscripcionTorneo = async function() {
+            const idTorneo = document.getElementById('anotarse-torneo-id').value;
+            const nombre = document.getElementById('anotarse-torneo-nombre').value.trim();
+            
+            if(!nombre) { alert("Debés ingresar un nombre."); return; }
+
+            const t = torneosAdminGlobal.find(x => x.id === idTorneo);
+            if(!t) return;
+
+            let inscriptos = t.inscriptos || [];
+            
+            // Verificamos si el nombre ya existe (ignorando mayúsculas/minúsculas)
+            const indiceExistente = inscriptos.findIndex(ins => ins.toLowerCase() === nombre.toLowerCase());
+
+            if (indiceExistente !== -1) {
+                // Si existe, lo damos de baja
+                if(confirm(`Encontramos tu inscripción ("${inscriptos[indiceExistente]}").\n¿Querés DARTE DE BAJA del torneo?`)) {
+                    inscriptos.splice(indiceExistente, 1);
+                    try {
+                        await updateDoc(doc(db, "torneos_admin", idTorneo), { inscriptos: inscriptos });
+                        alert("Te has dado de baja exitosamente.");
+                        window.cerrarModalInscribirseTorneo();
+                    } catch(e) { alert("Error al procesar la baja."); }
+                }
+            } else {
+                // Si no existe, intentamos anotarlo
+                if(inscriptos.length >= t.cupo) {
+                    alert("No podés anotarte, el torneo ya alcanzó su cupo máximo.");
+                    return;
+                }
+                
+                inscriptos.push(nombre);
+                try {
+                    await updateDoc(doc(db, "torneos_admin", idTorneo), { inscriptos: inscriptos });
+                    alert("¡Te anotaste con éxito al torneo!");
+                    window.cerrarModalInscribirseTorneo();
+                } catch(e) { alert("Error al procesar la inscripción."); }
+            }
+        };
+
+        // --- GESTIÓN ADMIN TORNEOS (El código anterior de Admin se mantiene intacto) ---
+        // 1. Inyectar botón 🏆 en el Panel de Control del Club
+        const adminBotonera = document.querySelector('#pantalla-club div > div[style="display: flex; gap: 15px;"]');
+        if (adminBotonera && !document.getElementById('btn-admin-torneos')) {
+            adminBotonera.insertAdjacentHTML('afterbegin', `
+                <button id="btn-admin-torneos" onclick="window.abrirModalAdminTorneos()" style="background: none; border: none; font-size: 1.5em; cursor: pointer; color: #9ca3af; transition: 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#9ca3af'" title="Gestión de Torneos">🏆</button>
+            `);
+        }
+
+        // 2. Inyectar Modales de Administración de Torneos
+        if (!document.getElementById('modal-admin-torneos')) {
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="modal-admin-torneos" class="modal-overlay" style="z-index: 1400;">
+                    <div class="modal-content scroll-interno" style="max-width: 500px;">
+                        <h3 style="margin: 0; border-bottom: 1px solid #44505d; padding-bottom: 10px; color: #f59e0b;">🏆 Gestión de Torneos</h3>
+                        
+                        <div class="seccion-acordeon" style="margin-top: 15px; text-align: left;">
+                            <div class="header-acordeon" onclick="window.toggleAcordeon('ac-crear-torneo')">
+                                <span>➕ Programar Nuevo Torneo</span> <span id="flecha-ac-crear-torneo">🔽</span>
+                            </div>
+                            <div id="ac-crear-torneo" class="contenido-acordeon">
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div>
+                                        <label style="font-size: 0.85em; color: #d1d5db;">Nombre del Torneo:</label>
+                                        <input type="text" id="torneo-admin-nombre" class="input-form" placeholder="Ej: Torneo Relámpago">
+                                    </div>
+                                    
+                                    <div style="display: flex; gap: 10px;">
+                                        <div style="flex: 1;">
+                                            <label style="font-size: 0.85em; color: #d1d5db;">Fecha:</label>
+                                            <input type="date" id="torneo-admin-fecha" class="input-form">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label style="font-size: 0.85em; color: #d1d5db;">Superficie:</label>
+                                            <select id="torneo-admin-sup" class="input-form">
+                                                <option value="Indoor">Indoor</option>
+                                                <option value="Outdoor">Outdoor</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; gap: 10px;">
+                                        <div style="flex: 1;">
+                                            <label style="font-size: 0.85em; color: #d1d5db;">Hora Inicio:</label>
+                                            <input type="time" id="torneo-admin-inicio" class="input-form">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label style="font-size: 0.85em; color: #d1d5db;">Hora Fin:</label>
+                                            <input type="time" id="torneo-admin-fin" class="input-form">
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; gap: 10px;">
+                                        <div style="flex: 1;">
+                                            <label style="font-size: 0.85em; color: #d1d5db;">Canchas a ocupar:</label>
+                                            <input type="number" id="torneo-admin-canchas" class="input-form" min="1" placeholder="Ej: 3">
+                                        </div>
+                                        <div style="flex: 1;">
+                                            <label style="font-size: 0.85em; color: #d1d5db;">Cupo Inscriptos:</label>
+                                            <input type="number" id="torneo-admin-cupo" class="input-form" min="4" placeholder="Ej: 16">
+                                        </div>
+                                    </div>
+                                    <button class="btn-modal btn-guardar" style="margin-top: 10px; background-color: #f59e0b;" onclick="window.crearTorneoAdmin()">Bloquear Canchas y Crear</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="text-align: left; margin-top: 15px;">
+                            <h4 style="color: #9ca3af; margin-bottom: 10px;">📋 Torneos Programados</h4>
+                            <div id="lista-torneos-admin" class="scroll-interno" style="max-height: 300px; overflow-y: auto;"></div>
+                        </div>
+
+                        <button class="btn-modal btn-cerrar" style="margin-top: 15px;" onclick="window.cerrarModalAdminTorneos()">Cerrar Panel</button>
+                    </div>
+                </div>
+
+                <div id="modal-torneo-inscriptos" class="modal-overlay" style="z-index: 1500;">
+                    <div class="modal-content scroll-interno" style="max-width: 400px;">
+                        <h3 id="lbl-torneo-titulo" style="margin: 0; color: #f59e0b;">Inscriptos</h3>
+                        <p id="lbl-torneo-info" style="color: #9ca3af; font-size: 0.85em; margin-bottom: 10px;"></p>
+                        <input type="hidden" id="torneo-activo-id">
+                        
+                        <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+                            <input type="text" id="torneo-nuevo-inscripto-admin" class="input-form" placeholder="Nombre Jugador/Pareja">
+                            <button class="btn-modal btn-guardar" style="width: auto; padding: 8px 15px;" onclick="window.agregarInscriptoTorneoAdmin()">+ Cargar</button>
+                        </div>
+
+                        <div id="lista-inscriptos-torneo" style="text-align: left; background: #242c36; border: 1px solid #2c3540; border-radius: 8px; padding: 10px; max-height: 200px; overflow-y: auto;"></div>
+
+                        <button class="btn-modal btn-cerrar" style="margin-top: 15px;" onclick="window.cerrarModalTorneoInscriptos()">Volver</button>
+                    </div>
+                </div>
+            `);
+        }
+
+        let torneosAdminGlobal = [];
+
+        window.abrirModalAdminTorneos = function() {
+            document.getElementById('modal-admin-torneos').style.display = 'flex';
+        };
+        
+        window.cerrarModalAdminTorneos = function() {
+            document.getElementById('modal-admin-torneos').style.display = 'none';
+        };
+
+        window.crearTorneoAdmin = async function() {
+            const nombre = document.getElementById('torneo-admin-nombre').value.trim();
+            const fecha = document.getElementById('torneo-admin-fecha').value;
+            const sup = document.getElementById('torneo-admin-sup').value;
+            const hInicio = document.getElementById('torneo-admin-inicio').value;
+            const hFin = document.getElementById('torneo-admin-fin').value;
+            const cantCanchasReq = parseInt(document.getElementById('torneo-admin-canchas').value);
+            const cupo = parseInt(document.getElementById('torneo-admin-cupo').value);
+
+            if(!nombre || !fecha || !hInicio || !hFin || isNaN(cantCanchasReq) || isNaN(cupo)) {
+                alert("Por favor completá todos los campos."); return;
+            }
+
+            let mInicio = window.aMinutos(hInicio);
+            let mFin = window.aMinutos(hFin);
+            if(mFin <= mInicio) mFin += 1440; 
+            let duracionTotal = mFin - mInicio;
+
+            let maxPadel = canchasIndoorGlobal + canchasOutdoorGlobal;
+            let canchasPosibles = [];
+            if(sup === 'Indoor') {
+                for(let c=1; c<=canchasIndoorGlobal; c++) canchasPosibles.push(c);
+            } else {
+                for(let c=canchasIndoorGlobal+1; c<=maxPadel; c++) canchasPosibles.push(c);
+            }
+
+            if(cantCanchasReq > canchasPosibles.length) {
+                alert(`Error: No tenés tantas canchas de tipo ${sup}. Tu máximo es ${canchasPosibles.length}.`);
+                return;
+            }
+
+            let bloquesNuevos = [];
+            for(let b=0; b < duracionTotal/30; b++) { bloquesNuevos.push(window.sumarMinutos(hInicio, b * 30)); }
+
+            let canchasLibres = [];
+            canchasPosibles.forEach(c => {
+                let ocupada = false;
+                reservasGlobales.forEach(r => {
+                    if(r.cancha == c && r.fecha === fecha && !(r.fechasCanceladas||[]).includes(fecha)) {
+                        let rDur = r.duracion || duracionGlobal;
+                        let rBloques = [];
+                        for(let b=0; b < rDur/30; b++) { rBloques.push(window.sumarMinutos(r.hora, b * 30)); }
+                        if(bloquesNuevos.some(b => rBloques.includes(b))) ocupada = true;
+                    }
+                });
+                if(!ocupada) canchasLibres.push(c);
+            });
+
+            if(canchasLibres.length < cantCanchasReq) {
+                alert(`¡Alerta! Solo tenés ${canchasLibres.length} canchas libres continuas en ese horario. Necesitás ${cantCanchasReq}.`);
+                return;
+            }
+
+            let canchasAOcupar = canchasLibres.slice(0, cantCanchasReq);
+
+            try {
+                const docRef = await addDoc(collection(db, "torneos_admin"), {
+                    nombre: nombre, fecha: fecha, superficie: sup, horaInicio: hInicio, horaFin: hFin,
+                    canchas: canchasAOcupar, cupo: cupo, inscriptos: [], fechaCreacion: serverTimestamp()
+                });
+
+                let promesasReservas = canchasAOcupar.map(cId => {
+                    return addDoc(collection(db, "reservas"), {
+                        fecha: fecha, hora: hInicio, cancha: cId.toString(),
+                        jugador: `🏆 Torneo: ${nombre}`, telefono: "", duracion: duracionTotal,
+                        fechaRegistro: serverTimestamp(), asistencia: false, fijo: false, fechasCanceladas: [],
+                        pagoEfectivo: 0, pagoTransferencia: 0, descuento: 0, consumos: [],
+                        tipoEvento: "Torneo", esClase: false, profe: null, idTorneoAsociado: docRef.id
+                    });
+                });
+
+                await Promise.all(promesasReservas);
+
+                alert(`¡Torneo programado con éxito!\nSe bloquearon automáticamente las canchas ${canchasAOcupar.join(', ')} para esa fecha y horario.`);
+                document.getElementById('torneo-admin-nombre').value = '';
+                document.getElementById('ac-crear-torneo').classList.remove('abierto');
+            } catch(e) {
+                alert("Hubo un error al crear y bloquear las canchas.");
+            }
+        };
+
+        window.renderizarTorneosAdmin = function() {
+            const div = document.getElementById('lista-torneos-admin');
+            if(!div) return;
+            div.innerHTML = '';
+
+            if(torneosAdminGlobal.length === 0) {
+                div.innerHTML = '<div style="color: #9ca3af; font-size: 0.9em; padding: 10px;">Aún no tenés torneos programados.</div>';
+                return;
+            }
+
+            torneosAdminGlobal.sort((a,b) => a.fecha > b.fecha ? 1 : -1).forEach(t => {
+                let insCount = (t.inscriptos || []).length;
+                let [y, m, d] = t.fecha.split('-');
+                let fechaLegible = `${d}/${m}/${y}`;
+
+                div.innerHTML += `
+                    <div style="background: #1e252d; border: 1px solid #44505d; border-radius: 8px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="color: #f59e0b; font-weight: bold; font-size: 1.1em;">🏆 ${t.nombre}</div>
+                            <div style="font-size: 0.85em; color: #d1d5db; margin-top: 4px;">📅 ${fechaLegible} | ⌚ ${t.horaInicio} a ${t.horaFin}</div>
+                            <div style="font-size: 0.8em; color: #9ca3af; margin-top: 2px;">Inscriptos: ${insCount} / ${t.cupo} | Canchas: ${t.canchas.join(', ')}</div>
+                        </div>
+                        <button class="btn-modal btn-guardar" style="width: auto; padding: 8px 12px; font-size: 0.85em; background-color: #3b82f6;" onclick="window.abrirModalTorneoInscriptos('${t.id}')">Inscriptos</button>
+                    </div>
+                `;
+            });
+        };
+
+        window.abrirModalTorneoInscriptos = function(idTorneo) {
+            const t = torneosAdminGlobal.find(x => x.id === idTorneo);
+            if(!t) return;
+            document.getElementById('torneo-activo-id').value = idTorneo;
+            document.getElementById('lbl-torneo-titulo').innerText = `🏆 ${t.nombre}`;
+            document.getElementById('lbl-torneo-info').innerText = `Cupo de inscriptos: ${(t.inscriptos || []).length} de ${t.cupo}.`;
+            document.getElementById('torneo-nuevo-inscripto-admin').value = '';
+            
+            renderizarInscriptosListaAdmin(t);
+            document.getElementById('modal-torneo-inscriptos').style.display = 'flex';
+        };
+
+        window.cerrarModalTorneoInscriptos = function() {
+            document.getElementById('modal-torneo-inscriptos').style.display = 'none';
+        };
+
+        window.agregarInscriptoTorneoAdmin = async function() {
+            const idTorneo = document.getElementById('torneo-activo-id').value;
+            const nombre = document.getElementById('torneo-nuevo-inscripto-admin').value.trim();
+            if(!nombre) return;
+
+            const t = torneosAdminGlobal.find(x => x.id === idTorneo);
+            if(!t) return;
+
+            let inscriptos = t.inscriptos || [];
+            if(inscriptos.length >= t.cupo) {
+                alert("¡El torneo ya alcanzó su cupo máximo!"); return;
+            }
+
+            inscriptos.push(nombre);
+
+            try {
+                await updateDoc(doc(db, "torneos_admin", idTorneo), { inscriptos: inscriptos });
+                document.getElementById('torneo-nuevo-inscripto-admin').value = '';
+                document.getElementById('lbl-torneo-info').innerText = `Cupo de inscriptos: ${inscriptos.length} de ${t.cupo}.`;
+                renderizarInscriptosListaAdmin({...t, inscriptos});
+            } catch(e) { alert("Error al agregar al jugador/pareja."); }
+        };
+
+        window.eliminarInscriptoTorneoAdmin = async function(idTorneo, index) {
+            const t = torneosAdminGlobal.find(x => x.id === idTorneo);
+            if(!t) return;
+            let inscriptos = t.inscriptos || [];
+            inscriptos.splice(index, 1);
+            try {
+                await updateDoc(doc(db, "torneos_admin", idTorneo), { inscriptos: inscriptos });
+                document.getElementById('lbl-torneo-info').innerText = `Cupo de inscriptos: ${inscriptos.length} de ${t.cupo}.`;
+                renderizarInscriptosListaAdmin({...t, inscriptos});
+            } catch(e) { alert("Error al borrar."); }
+        };
+
+        function renderizarInscriptosListaAdmin(torneo) {
+            const div = document.getElementById('lista-inscriptos-torneo');
+            let html = '';
+            const inscriptos = torneo.inscriptos || [];
+            if(inscriptos.length === 0) {
+                html = '<div style="color:#9ca3af; font-size:0.9em; text-align:center;">Aún no hay participantes cargados.</div>';
+            } else {
+                inscriptos.forEach((nombre, i) => {
+                    html += `<div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #44505d; padding: 8px 0; color: #d1d5db; font-size: 0.95em;">
+                                <span><strong>${i+1}.</strong> ${nombre}</span>
+                                <button onclick="window.eliminarInscriptoTorneoAdmin('${torneo.id}', ${i})" style="background:none; border:none; color:#ef4444; cursor:pointer;" title="Remover Inscripto">❌</button>
+                             </div>`;
+                });
+            }
+            div.innerHTML = html;
+        }
+
+        // Suscripciones a Firebase
         onSnapshot(collection(db, "matchmaking"), (snapshot) => {
             matchmakingGlobal = [];
             snapshot.forEach((doc) => matchmakingGlobal.push({ id: doc.id, ...doc.data() }));
@@ -3261,6 +3680,26 @@
             rankingGlobal = [];
             snapshot.forEach((doc) => rankingGlobal.push({ id: doc.id, ...doc.data() }));
             renderizarRanking();
+        });
+
+        onSnapshot(collection(db, "torneos_admin"), (snapshot) => {
+            torneosAdminGlobal = [];
+            snapshot.forEach((doc) => torneosAdminGlobal.push({ id: doc.id, ...doc.data() }));
+            renderizarTorneosAdmin();
+            
+            // Actualizar la vista pública si está abierta
+            if (document.getElementById('subvista-torneos') && document.getElementById('subvista-torneos').style.display === 'block') {
+                window.renderizarTorneosPublicos();
+            }
+
+            const idActivo = document.getElementById('torneo-activo-id');
+            if(idActivo && document.getElementById('modal-torneo-inscriptos') && document.getElementById('modal-torneo-inscriptos').style.display === 'flex') {
+                const t = torneosAdminGlobal.find(x => x.id === idActivo.value);
+                if(t) {
+                    document.getElementById('lbl-torneo-info').innerText = `Cupo de inscriptos: ${(t.inscriptos || []).length} de ${t.cupo}.`;
+                    renderizarInscriptosListaAdmin(t);
+                }
+            }
         });
         // =========================================================
     </script>
