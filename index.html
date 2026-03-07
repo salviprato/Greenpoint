@@ -2355,13 +2355,13 @@
 
         renderizarCalendarios();
 // =========================================================
-        // --- NUEVO MÓDULO: RANKING Y MATCHMAKING COMPETITIVO ---
+        // --- NUEVO MÓDULO: RANKING, MATCHMAKING Y TORNEOS ---
         // =========================================================
 
         if (!document.getElementById('btn-ranking')) {
             const controles = document.querySelector('.controles-vista');
             controles.insertAdjacentHTML('beforeend', `
-                <button id="btn-ranking" class="btn-vista" onclick="window.cambiarVista('ranking')">🏆 Ranking / Ligas</button>
+                <button id="btn-ranking" class="btn-vista" onclick="window.cambiarVista('ranking')">🏆 Circuito</button>
             `);
         }
 
@@ -2369,29 +2369,43 @@
             const body = document.querySelector('body');
             body.insertAdjacentHTML('beforeend', `
                 <div id="pantalla-ranking" class="vista-jugador" style="display: none; max-width: 600px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h2 style="margin: 0;">🏆 Circuito Competitivo</h2>
-                        <button class="btn-modal btn-guardar" style="width: auto; padding: 10px 15px; background-color: #f59e0b; font-size: 1.05em;" onclick="window.abrirModalJugarCompetitivo()">🔥 Partidos / Jugar</button>
+                    <h2 style="margin: 0; margin-bottom: 15px;">🏆 Circuito Competitivo</h2>
+                    
+                    <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                        <button class="btn-modal btn-guardar" style="flex: 1; padding: 10px; background-color: #f59e0b;" onclick="window.abrirModalJugarCompetitivo()">🔥 Partidos</button>
+                        <button id="btn-sub-ranking" class="btn-modal btn-guardar" style="flex: 1; padding: 10px; background-color: #3b82f6; border: none;" onclick="window.cambiarSubVistaCompetitiva('ranking')">📊 Ranking</button>
+                        <button id="btn-sub-torneos" class="btn-modal btn-guardar" style="flex: 1; padding: 10px; background-color: #242c36; border: 1px solid #44505d;" onclick="window.cambiarSubVistaCompetitiva('torneos')">🏆 Torneos</button>
                     </div>
                     
-                    <div style="margin-bottom: 10px; border-top: 1px solid #2c3540; padding-top: 15px;">
-                        <span style="font-size: 0.9em; color: #9ca3af; font-weight: bold;">Tabla General de Posiciones (Automática)</span>
+                    <div id="subvista-ranking">
+                        <div style="margin-bottom: 10px; border-top: 1px solid #2c3540; padding-top: 15px;">
+                            <span style="font-size: 0.9em; color: #9ca3af; font-weight: bold;">Tabla General de Posiciones (Automática)</span>
+                        </div>
+                        <div class="scroll-interno" style="background: #242c36; border-radius: 8px; border: 1px solid #2c3540; padding: 5px;">
+                            <table style="width: 100%; text-align: left;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 15%; text-align: center;">Pos</th>
+                                        <th style="width: 45%;">Jugador / Pareja</th>
+                                        <th style="width: 20%; text-align: center;">PTS</th>
+                                        <th style="width: 20%; text-align: center;">PJ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lista-ranking">
+                                    <tr><td colspan="4" style="text-align: center; color: #9ca3af; padding: 15px;">Cargando ranking...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
-                    <div class="scroll-interno" style="background: #242c36; border-radius: 8px; border: 1px solid #2c3540; padding: 5px;">
-                        <table style="width: 100%; text-align: left;">
-                            <thead>
-                                <tr>
-                                    <th style="width: 15%; text-align: center;">Pos</th>
-                                    <th style="width: 45%;">Jugador / Pareja</th>
-                                    <th style="width: 20%; text-align: center;">PTS</th>
-                                    <th style="width: 20%; text-align: center;">PJ</th>
-                                </tr>
-                            </thead>
-                            <tbody id="lista-ranking">
-                                <tr><td colspan="4" style="text-align: center; color: #9ca3af; padding: 15px;">Cargando ranking...</td></tr>
-                            </tbody>
-                        </table>
+                    <div id="subvista-torneos" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-top: 1px solid #2c3540; padding-top: 15px;">
+                            <span style="font-size: 0.9em; color: #9ca3af; font-weight: bold;">Torneos Disponibles</span>
+                            <button class="btn-modal btn-guardar" style="width: auto; padding: 6px 12px; font-size: 0.8em; background-color: #8b5cf6;" onclick="window.abrirModalCrearTorneo()">+ Nuevo Torneo</button>
+                        </div>
+                        <div id="lista-torneos" class="scroll-interno" style="background: #242c36; border-radius: 8px; border: 1px solid #2c3540; padding: 15px; text-align: center; color: #9ca3af; min-height: 100px; display: flex; align-items: center; justify-content: center;">
+                            Acá aparecerán las llaves y grupos de los torneos activos.
+                        </div>
                     </div>
                 </div>
 
@@ -2528,11 +2542,32 @@
             }
         };
 
+        // --- NAVEGACIÓN ENTRE RANKING Y TORNEOS ---
+        window.cambiarSubVistaCompetitiva = function(vista) {
+            document.getElementById('subvista-ranking').style.display = vista === 'ranking' ? 'block' : 'none';
+            document.getElementById('subvista-torneos').style.display = vista === 'torneos' ? 'block' : 'none';
+            
+            const btnR = document.getElementById('btn-sub-ranking');
+            const btnT = document.getElementById('btn-sub-torneos');
+            
+            if (vista === 'ranking') {
+                btnR.style.backgroundColor = '#3b82f6'; btnR.style.border = 'none';
+                btnT.style.backgroundColor = '#242c36'; btnT.style.border = '1px solid #44505d';
+            } else {
+                btnT.style.backgroundColor = '#8b5cf6'; btnT.style.border = 'none';
+                btnR.style.backgroundColor = '#242c36'; btnR.style.border = '1px solid #44505d';
+            }
+        };
+
+        window.abrirModalCrearTorneo = function() {
+            alert("¡Próximamente! Aquí podremos armar la creación automática de llaves (Cuartos, Semis, Final) y grupos.");
+        };
+
         // Interceptar el cambio de fecha para refrescar los horarios si el modal está abierto
         const seleccionarFechaBase = window.seleccionarFecha;
         window.seleccionarFecha = function(fechaISO) {
             seleccionarFechaBase(fechaISO);
-            if (document.getElementById('modal-jugar-competitivo').style.display === 'flex') {
+            if (document.getElementById('modal-jugar-competitivo') && document.getElementById('modal-jugar-competitivo').style.display === 'flex') {
                 window.llenarHorariosDisponiblesCompetitivo();
                 window.renderizarPartidosAbiertos();
             }
@@ -2839,7 +2874,6 @@
                     actualizarJugador(perdedores[1], PTS_PERDEDOR)
                 ]);
 
-                // Guardamos el ganador para verlo en el historial
                 await updateDoc(doc(db, "matchmaking", id), { estado: 'Finalizado', ganador: ganadorNum });
 
                 alert("¡Resultado cargado! El ranking se actualizó automáticamente.");
@@ -2880,7 +2914,7 @@
             });
         };
 
-        // RENDERIZAR TABLA (Solo lectura)
+        // RENDERIZAR TABLA RANKING (Solo lectura)
         function renderizarRanking() {
             const tbody = document.getElementById('lista-ranking');
             if (!tbody) return;
