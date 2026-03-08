@@ -3320,11 +3320,7 @@ window.confirmarInscripcionTorneo = async function() {
                 `;
             });
         }
- 
-        <button class="btn-modal btn-guardar" style="margin-top: 20px; background-color: #10b981;" onclick="window.confirmarInscripcionTorneo()">Confirmar Inscripción</button>
-        <button class="btn-modal btn-cerrar" style="margin-top: 10px;" onclick="window.cerrarModalInscripcionTorneo()">Cancelar</button>
-    </div>
-</div
+
         // Suscripciones
         onSnapshot(collection(db, "matchmaking"), (snapshot) => {
             matchmakingGlobal = [];
