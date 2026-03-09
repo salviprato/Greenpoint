@@ -3357,5 +3357,95 @@ window.confirmarInscripcionTorneo = async function() {
         </div>
     </div>
 
-</body>
+</body> <body>
+    <div id="pantalla-login" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100%; position: absolute; top: 0; left: 0; background-color: #171d24; z-index: 9999;">
+        <div style="background: #1e252d; padding: 40px; border-radius: 12px; border: 1px solid #2c3540; text-align: center; max-width: 320px; width: 100%;">
+            <h2 style="margin-top: 0; color: #3b82f6;">Iniciar Sesión</h2>
+            <p style="color: #9ca3af; font-size: 0.9em; margin-bottom: 20px;">Portal Privado Multi-Club</p>
+            <input type="email" id="login-email" class="input-form" placeholder="Correo electrónico" style="margin-bottom: 10px;">
+            <input type="password" id="login-pass" class="input-form" placeholder="Contraseña" style="margin-bottom: 20px;">
+            <button class="btn-modal btn-guardar" style="background-color: #3b82f6;" onclick="window.iniciarSesion()">Ingresar</button>
+        </div>
+    </div>
+
+    <div id="app-content" style="display: none; width: 100%; flex-direction: column; align-items: center;">
+        
+        ```
+*(Asegúrate de cerrar ese `<div id="app-content">` al final de tu HTML, justo antes de los `<script>`)*
+
+**B. Actualizar el JavaScript (Las entrañas del sistema):**
+Busca tu etiqueta `<script type="module">`. Necesitamos importar Auth y cambiar la forma en que Firebase lee y guarda los datos (ahora todos llevarán el `clubId`). 
+
+Reemplaza los imports iniciales y la inicialización por esto:
+
+```javascript
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAMRLDlarJiomWY4IX5c6CR3RFWHqmMu30",
+        authDomain: "greenpoint-80ba8.firebaseapp.com",
+        projectId: "greenpoint-80ba8",
+        storageBucket: "greenpoint-80ba8.firebasestorage.app",
+        messagingSenderId: "553295919513",
+        appId: "1:553295919513:web:79d5da1a535e3835e0bb08"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // VARIABLES DE SESIÓN
+    window.clubIdActual = null;
+    window.usuarioRol = null;
+
+    // --- AUTENTICACIÓN ---
+    window.iniciarSesion = async function() {
+        const email = document.getElementById('login-email').value;
+        const pass = document.getElementById('login-pass').value;
+        try {
+            await signInWithEmailAndPassword(auth, email, pass);
+        } catch(error) {
+            alert("Credenciales incorrectas.");
+        }
+    }
+
+    window.cerrarSesion = function() { signOut(auth); }
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // Usuario correcto. Ocultamos el login.
+            document.getElementById('pantalla-login').style.display = 'none';
+            
+            // Buscamos a qué club pertenece
+            const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+            if (userDoc.exists()) {
+                window.clubIdActual = userDoc.data().clubId;
+                window.usuarioRol = userDoc.data().rol;
+                
+                document.getElementById('app-content').style.display = 'flex';
+                
+                // Si es admin, mostramos la vista del club. Si es jugador, mostramos el circuito.
+                if(window.usuarioRol === 'admin') {
+                    window.cambiarVista('club');
+                } else {
+                    window.cambiarVista('ranking');
+                }
+                
+                // INICIAMOS LA DESCARGA DE DATOS SOLO DE ESE CLUB
+                iniciarListenersPrivados();
+            } else {
+                alert("Este usuario no tiene un club asignado.");
+                signOut(auth);
+            }
+        } else {
+            // No hay usuario. Mostramos el login.
+            document.getElementById('pantalla-login').style.display = 'flex';
+            document.getElementById('app-content').style.display = 'none';
+        }
+    });
+
+    // --- CÓDIGO EXISTENTE ---
+    // (AQUÍ DEJAS TODAS TUS FUNCIONES: window.formatearDinero, window.abrirModal, etc.)
 </html>
