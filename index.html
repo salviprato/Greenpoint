@@ -1711,9 +1711,253 @@
         window.confirmarResultado = async function(g) { await updateDoc(doc(db, "matchmaking", document.getElementById('resultado-partido-id').value), { estado: 'Finalizado', ganador: g }); window.cerrarModalResultado(); };
         window.renderizarHistorialCompetitivo = function() { const div = document.getElementById('lista-partidos-historial'); if(div) div.innerHTML = matchmakingGlobal.filter(m=>m.estado==='Finalizado').map(m=>`<p>${m.fechaDeseada}: Eq${m.ganador} Gana</p>`).join(''); };
 
-        function renderizarRanking() {
+       function renderizarRanking() {
             const tb = document.getElementById('lista-ranking'); if(!tb) return; tb.innerHTML = '';
             rankingGlobal.sort((a,b)=>b.puntos-a.puntos).forEach((j, i) => { tb.innerHTML += `<tr><td>${i+1}</td><td>${j.nombre}</td><td>${j.puntos}</td><td>${j.partidosJugados}</td></tr>`; });
+        }
+
+        // --- MÉTRICAS Y GRÁFICOS AVANZADOS (CHART.JS) ---
+        window.abrirModalMetricas = function() { 
+            // 1. Mostramos el modal primero para que el canvas tenga dimensiones
+            document.getElementById('modal-metricas').style.display = 'flex'; 
+            
+            // 2. Le damos un retraso para que Chart.js pueda leer el tamaño real
+            setTimeout(() => {
+                window.actualizarGraficos();
+            }, 50); 
+        }
+        
+        window.cerrarModalMetricas = function() { 
+            document.getElementById('modal-metricas').style.display = 'none'; 
+        }
+
+        function obtenerCestasPeriodo(periodo) {
+            let cestas = [];
+            let hoy = new Date();
+            hoy.setHours(0,0,0,0);
+            
+            if(periodo === '7d') {
+                for(let i=6; i>=0; i--) {
+                    let d = new Date(hoy); d.setDate(d.getDate() - i);
+                    cestas.push({ label: `${d.getDate()}/${d.getMonth()+1}`, start: d.getTime(), end: d.getTime() + 86400000 });
+                }
+            } else if(periodo === '1m') {
+                for(let i=3; i>=0; i--) {
+                    let end = new Date(hoy); end.setDate(end.getDate() - (i*7));
+                    let start = new Date(end); start.setDate(start.getDate() - 6);
+                    cestas.push({ label: `Sem ${start.getDate()}/${start.getMonth()+1}`, start: start.getTime(), end: end.getTime() + 86400000 });
+                }
+            } else if(periodo === '3m') {
+                 for(let i=5; i>=0; i--) {
+                    let end = new Date(hoy); end.setDate(end.getDate() - (i*15));
+                    let start = new Date(end); start.setDate(start.getDate() - 14);
+                    cestas.push({ label: `Qna ${start.getDate()}/${start.getMonth()+1}`, start: start.getTime(), end: end.getTime() + 86400000 });
+                }
+            } else if(periodo === '6m' || periodo === '1y') {
+                let meses = periodo === '6m' ? 6 : 12;
+                for(let i=meses-1; i>=0; i--) {
+                    let d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+                    let n = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+                    let end = new Date(hoy.getFullYear(), hoy.getMonth() - i + 1, 0);
+                    cestas.push({ label: `${n[d.getMonth()]} ${d.getFullYear().toString().substring(2)}`, start: d.getTime(), end: end.getTime() + 86400000 });
+                }
+            }
+            return cestas;
+        }
+
+        window.actualizarGraficos = function() {
+            const periodo = document.getElementById('select-periodo-metricas').value;
+            const categoria = document.getElementById('select-categoria-metricas').value;
+            
+            let cestas = obtenerCestasPeriodo(periodo);
+            let datosBarras = cestas.map(() => 0);
+            let datosLinea = cestas.map(() => 0);
+
+            const esDinero = ['ganancias_brutas', 'gastos', 'ganancias_netas', 'ventas_productos'].includes(categoria);
+            const labelBarras = esDinero ? 'Monto Total ($)' : 'Cantidad de Turnos';
+            const labelLinea = esDinero ? 'Cant. Transacciones' : 'Horas Reservadas';
+
+            const getTime = (fechaStr, firebaseTimestamp) => {
+                if (firebaseTimestamp) return getDateFromFirebase(firebaseTimestamp).getTime();
+                if (fechaStr) {
+                    let [y, m, d] = fechaStr.split('-');
+                    return new Date(y, m-1, d).getTime();
+                }
+                return 0;
+            };
+
+            // Procesar Reservas
+            reservasGlobales.forEach(res => {
+                if(!res.fecha) return;
+                if(res.fechasCanceladas && res.fechasCanceladas.includes(res.fecha)) return;
+                
+                let timeTurno = getTime(res.fecha, null);
+                let timePago = res.fechaRegistro ? getTime(null, res.fechaRegistro) : timeTurno;
+
+                let maxPadel = canchasIndoorGlobal + canchasOutdoorGlobal;
+                let numC = parseInt(res.cancha) || 1;
+                
+                let isIndoor = numC <= canchasIndoorGlobal;
+                let isOutdoor = numC > canchasIndoorGlobal && numC <= maxPadel;
+                let isTenis = numC > maxPadel;
+                let isProfe = res.esClase === true;
+                let isFijo = res.fijo === true;
+                
+                let duracion = (res.duracion || duracionGlobal) / 60;
+                let pagoTotal = (parseFloat(res.pagoEfectivo) || 0) + (parseFloat(res.pagoTransferencia) || 0);
+
+                let matchTurno = false;
+                if(categoria === 'indoor' && isIndoor && !isProfe) matchTurno = true;
+                if(categoria === 'outdoor' && isOutdoor && !isProfe) matchTurno = true;
+                if(categoria === 'tenis' && isTenis && !isProfe) matchTurno = true;
+                if(categoria === 'profes' && isProfe) matchTurno = true;
+                if(categoria === 'turnos_fijos' && isFijo) matchTurno = true;
+                if(categoria === 'turnos_basicos' && !isFijo) matchTurno = true;
+
+                if(matchTurno) {
+                    for(let i=0; i<cestas.length; i++) {
+                        if(timeTurno >= cestas[i].start && timeTurno < cestas[i].end) {
+                            datosBarras[i]++;
+                            datosLinea[i] += duracion;
+                            break;
+                        }
+                    }
+                }
+
+                if (pagoTotal > 0 && (categoria === 'ganancias_brutas' || categoria === 'ganancias_netas')) {
+                    for(let i=0; i<cestas.length; i++) {
+                        if(timePago >= cestas[i].start && timePago < cestas[i].end) {
+                            datosBarras[i] += pagoTotal;
+                            datosLinea[i]++; 
+                            break;
+                        }
+                    }
+                }
+
+                if (categoria === 'ventas_productos' && res.consumos && res.consumos.length > 0) {
+                    let totalConsumos = res.consumos.reduce((acc, c) => acc + parseFloat(c.precio), 0);
+                    for(let i=0; i<cestas.length; i++) {
+                        if(timePago >= cestas[i].start && timePago < cestas[i].end) {
+                            datosBarras[i] += totalConsumos;
+                            datosLinea[i] += res.consumos.length;
+                            break;
+                        }
+                    }
+                }
+            });
+
+            // Procesar Ingresos Rápidos
+            if (['ganancias_brutas', 'ganancias_netas', 'ventas_productos'].includes(categoria)) {
+                ingresosGlobal.forEach(ing => {
+                    let time = getTime(null, ing.fechaRegistro);
+                    let total = (parseFloat(ing.efectivo) || 0) + (parseFloat(ing.transferencia) || 0);
+                    let isVentaProducto = ing.titulo && ing.titulo.startsWith("Venta:");
+
+                    if (categoria === 'ventas_productos' && !isVentaProducto) return; 
+
+                    for(let i=0; i<cestas.length; i++) {
+                        if(time >= cestas[i].start && time < cestas[i].end) {
+                            datosBarras[i] += total;
+                            datosLinea[i]++;
+                            break;
+                        }
+                    }
+                });
+            }
+
+            // Procesar Gastos
+            if (['gastos', 'ganancias_netas'].includes(categoria)) {
+                gastosGlobal.forEach(gas => {
+                    let time = getTime(null, gas.fechaRegistro);
+                    let total = parseFloat(gas.importe) || 0;
+                    
+                    for(let i=0; i<cestas.length; i++) {
+                        if(time >= cestas[i].start && time < cestas[i].end) {
+                            if (categoria === 'gastos') {
+                                datosBarras[i] += total;
+                                datosLinea[i]++;
+                            } else if (categoria === 'ganancias_netas') {
+                                datosBarras[i] -= total; 
+                            }
+                            break;
+                        }
+                    }
+                });
+            }
+
+            const etiquetas = cestas.map(c => c.label);
+            const ctx = document.getElementById('graficoMetricas').getContext('2d');
+            
+            // LA DESTRUCCIÓN PREVIA ES VITAL AQUÍ
+            if (metricasChart) { metricasChart.destroy(); }
+
+            metricasChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: etiquetas,
+                    datasets: [
+                        {
+                            label: labelBarras,
+                            data: datosBarras,
+                            backgroundColor: categoria === 'gastos' ? '#ef4444' : '#3b82f6', 
+                            borderRadius: 4,
+                            order: 2
+                        },
+                        {
+                            label: labelLinea,
+                            data: datosLinea,
+                            type: 'line',
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.3,
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    color: '#d1d5db',
+                    plugins: {
+                        legend: { labels: { color: '#d1d5db', font: { family: "'Segoe UI', sans-serif" } } },
+                        tooltip: { 
+                            mode: 'index', 
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    let value = context.parsed.y;
+                                    if (label) { label += ': '; }
+                                    if (esDinero && context.datasetIndex === 0) {
+                                        label += '$' + value.toLocaleString('es-AR');
+                                    } else {
+                                        label += value;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#2c3540' },
+                            ticks: { 
+                                color: '#9ca3af',
+                                callback: function(value) {
+                                    return esDinero ? '$' + value.toLocaleString('es-AR') : value;
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#9ca3af' }
+                        }
+                    }
+                }
+            });
         }
 
 
