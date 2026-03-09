@@ -1687,7 +1687,7 @@
             document.getElementById('ac-crear-torneo').classList.remove('abierto');
         };
 
-        window.renderizarTorneosAdmin = function() {
+       window.renderizarTorneosAdmin = function() {
             const div = document.getElementById('lista-torneos-admin'); if(!div) return; div.innerHTML = '';
             torneosAdminGlobal.sort((a,b) => b.fechaCreacion - a.fechaCreacion).forEach(t => { 
                 let estado = "📝 Inscripciones";
@@ -1695,13 +1695,52 @@
                 if(t.bracket) estado = "🎾 Cuadro Principal";
                 
                 div.innerHTML += `<div style="border: 1px solid #44505d; border-radius: 6px; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; background: #242c36;">
-                    <div><strong style="color:#f59e0b;">🏆 ${t.nombre}</strong> <span style="color:#9ca3af; font-size:0.85em;">(${t.fecha})</span><br>
-                    <small style="color:#d1d5db;">${estado} | Cupos: ${(t.inscriptos||[]).length}/${t.cupo}</small></div>
-                    <button class="btn-modal btn-guardar" style="width: auto; padding: 6px 12px; font-size: 0.85em; background-color: #3b82f6;" onclick="window.abrirModalTorneoInscriptos('${t.id}')">Gestionar</button>
+                    <div style="flex: 1;">
+                        <strong style="color:#f59e0b;">🏆 ${t.nombre}</strong> <span style="color:#9ca3af; font-size:0.85em;">(${t.fecha})</span><br>
+                        <small style="color:#d1d5db;">${estado} | Cupos: ${(t.inscriptos||[]).length}/${t.cupo}</small>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-modal btn-guardar" style="width: auto; padding: 6px 12px; font-size: 0.85em; background-color: #3b82f6;" onclick="window.abrirModalTorneoInscriptos('${t.id}')">Gestionar</button>
+                        <button class="btn-modal" style="width: auto; padding: 6px 10px; font-size: 0.85em; background-color: transparent; border: 1px solid #ef4444; color: #ef4444;" onclick="window.eliminarTorneoAdmin('${t.id}')" title="Borrar Torneo">🗑️</button>
+                    </div>
                 </div>`; 
             });
         };
 
+        window.eliminarTorneoAdmin = async function(idTorneo) {
+            const t = torneosAdminGlobal.find(x => x.id === idTorneo);
+            if(!t) return;
+            
+            if(confirm(`⚠️ ATENCIÓN: ¿Estás seguro de que deseas ELIMINAR el torneo "${t.nombre}"?\n\nEsto borrará todas las inscripciones, grupos y llaves. También liberará las reservas bloqueadas en la grilla para ese día.`)) {
+                try {
+                    // 1. Borrar el documento del torneo
+                    await deleteDoc(doc(db, "torneos_admin", idTorneo));
+                    
+                    // 2. Buscar y borrar las reservas asociadas en la grilla
+                    // (Buscamos las reservas que coincidan con la fecha, hora y que tengan el nombre del torneo)
+                    const reservasAborrar = reservasGlobales.filter(r => 
+                        r.clubId === window.clubIdActual && 
+                        r.tipoEvento === "Torneo" && 
+                        r.fecha === t.fecha && 
+                        r.hora === t.horaInicio &&
+                        r.jugador.includes(t.nombre)
+                    );
+
+                    let promesasBorrado = reservasAborrar.map(r => deleteDoc(doc(db, "reservas", r.id)));
+                    await Promise.all(promesasBorrado);
+                    
+                    alert("Torneo eliminado exitosamente.");
+                    
+                    // Si el modal de gestión del torneo estaba abierto, lo cerramos
+                    if(document.getElementById('torneo-activo-id').value === idTorneo) {
+                        window.cerrarModalTorneoInscriptos();
+                    }
+                } catch(e) {
+                    alert("Ocurrió un error al intentar eliminar el torneo.");
+                }
+            }
+        };
+        
         window.abrirModalTorneoInscriptos = function(id) { 
             document.getElementById('torneo-activo-id').value = id; 
             const t = torneosAdminGlobal.find(x=>x.id===id);
