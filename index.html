@@ -976,7 +976,13 @@
                             <input type="tel" id="perfil-telefono" class="input-form" placeholder="Ej: 3511234567" style="margin-top: 4px;">
                         </div>
                     </div>
-                    <div id="modal-amigos" class="modal-overlay" style="z-index: 1600;">
+                </div>
+
+                <button class="btn-modal btn-guardar" style="margin-top: 20px; background-color: #3b82f6;" onclick="window.guardarPerfilJugador()">Guardar Perfil</button>
+            </div>
+        </div>
+
+        <div id="modal-amigos" class="modal-overlay" style="z-index: 1600;">
             <div class="modal-content scroll-interno" style="max-width: 450px; max-height: 80vh; overflow-y: auto;">
                 <h3 style="margin: 0; color: #8b5cf6; border-bottom: 1px solid #44505d; padding-bottom: 10px;">👥 Mis Amigos</h3>
                 
@@ -1010,11 +1016,9 @@
                 <button class="btn-modal btn-cerrar" style="margin-top: 20px;" onclick="window.cerrarModalAmigos()">Cerrar</button>
             </div>
         </div>
-                </div>
 
-              <button class="btn-modal btn-guardar" style="margin-top: 20px; background-color: #3b82f6;" onclick="window.guardarPerfilJugador()">Guardar Perfil</button>
-            </div>
-        </div>
+    </div> ```
+
 
     </div> <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
