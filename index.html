@@ -2240,10 +2240,13 @@
             }
         };
 
-        window.renderizarAmigos = function() {
+       window.renderizarAmigos = function() {
             const div = document.getElementById('lista-mis-amigos');
             if(!div) return;
             div.innerHTML = '';
+            
+            // PROTECCIÓN CLAVE: Si el perfil aún no carga o no tiene la propiedad 'amigos', crearla vacía
+            if(!window.perfilJugador) window.perfilJugador = {};
             let misAmigos = window.perfilJugador.amigos || [];
             
             if(misAmigos.length === 0) {
@@ -2265,7 +2268,7 @@
             if(document.getElementById('comp-nombre-amigo')) document.getElementById('comp-nombre-amigo').innerHTML = options;
             if(document.getElementById('unirse-nombre-amigo')) document.getElementById('unirse-nombre-amigo').innerHTML = options;
         };
-
+        
         window.renderizarSolicitudes = function() {
             const div = document.getElementById('lista-solicitudes');
             if(!div) return;
