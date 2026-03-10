@@ -2692,6 +2692,30 @@
         // --- LISTENERS PRIVADOS DE LA APLICACIÓN ---
         function iniciarListenersPrivados() {
             if(!window.clubIdActual) return;
+            
+            // Novedad: Escuchador en tiempo real de Solicitudes y Perfil
+            if(window.usuarioLogueadoUID) {
+                // Escuchar solicitudes de amistad
+                onSnapshot(query(collection(db, "solicitudes_amistad"), where("receptorId", "==", window.usuarioLogueadoUID)), (s) => {
+                    window.solicitudesPendientes = [];
+                    s.forEach(d => window.solicitudesPendientes.push({id: d.id, ...d.data()}));
+                    
+                    const badge = document.getElementById('btn-amigos-badge');
+                    if(badge) badge.innerText = window.solicitudesPendientes.length > 0 ? `(${window.solicitudesPendientes.length})` : '';
+                    
+                    if (document.getElementById('modal-amigos') && document.getElementById('modal-amigos').style.display === 'flex') {
+                        window.renderizarSolicitudes();
+                    }
+                });
+                
+                // Mantener la variable del perfil actualizada (para ver los amigos nuevos)
+                onSnapshot(doc(db, "usuarios", window.usuarioLogueadoUID), (docSnap) => {
+                    if(docSnap.exists()) {
+                        window.perfilJugador = docSnap.data();
+                        if(typeof window.renderizarAmigos === 'function') window.renderizarAmigos();
+                    }
+                });
+            }
 
             // 1. Configuracion del Club específico
             onSnapshot(doc(db, "configuracion", window.clubIdActual), (documento) => {
