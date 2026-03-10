@@ -2689,13 +2689,12 @@
         }
 
 
-        // --- LISTENERS PRIVADOS DE LA APLICACIÓN ---
+       // --- LISTENERS PRIVADOS DE LA APLICACIÓN ---
         function iniciarListenersPrivados() {
-            if(!window.clubIdActual) return;
             
-            // Novedad: Escuchador en tiempo real de Solicitudes y Perfil
+            // 1. ESCUCHADORES GLOBALES (Para TODOS los usuarios: Jugadores y Admins)
             if(window.usuarioLogueadoUID) {
-                // Escuchar solicitudes de amistad
+                // Escuchar solicitudes de amistad entrantes
                 onSnapshot(query(collection(db, "solicitudes_amistad"), where("receptorId", "==", window.usuarioLogueadoUID)), (s) => {
                     window.solicitudesPendientes = [];
                     s.forEach(d => window.solicitudesPendientes.push({id: d.id, ...d.data()}));
@@ -2708,7 +2707,7 @@
                     }
                 });
                 
-                // Mantener la variable del perfil actualizada (para ver los amigos nuevos)
+                // Mantener el perfil actualizado para ver amigos nuevos
                 onSnapshot(doc(db, "usuarios", window.usuarioLogueadoUID), (docSnap) => {
                     if(docSnap.exists()) {
                         window.perfilJugador = docSnap.data();
@@ -2717,60 +2716,69 @@
                 });
             }
 
-            // 1. Configuracion del Club específico
-            onSnapshot(doc(db, "configuracion", window.clubIdActual), (documento) => {
-                if (documento.exists()) {
-                    let data = documento.data();
-                    primerTurno = data.primerTurno || "08:00"; ultimoTurno = data.ultimoTurno || "21:30";
-                    duracionGlobal = parseInt(data.duracionTurno) || 90; 
-                    canchasIndoorGlobal = isNaN(parseInt(data.canchasIndoor)) ? 1 : parseInt(data.canchasIndoor); 
-                    canchasOutdoorGlobal = isNaN(parseInt(data.canchasOutdoor)) ? 0 : parseInt(data.canchasOutdoor);
-                    canchasTenisGlobal = isNaN(parseInt(data.canchasTenis)) ? 0 : parseInt(data.canchasTenis);
-                    precioIndoorGlobal = data.precioIndoor || "15000"; precioOutdoorGlobal = data.precioOutdoor || "12000";
-                    precioTenisGlobal = data.precioTenis || "10000";
-                    diasAbiertosGlobal = data.diasAbiertos || [0,1,2,3,4,5,6]; 
-                    telefonoClubGlobal = data.telefonoClub || ""; 
-                }
-                
-                // Actualizar inputs del modal
-                if(document.getElementById('input-primer-turno')) {
-                    document.getElementById('input-primer-turno').value = primerTurno; document.getElementById('input-ultimo-turno').value = ultimoTurno;
-                    document.getElementById('input-duracion').value = duracionGlobal;
-                    document.getElementById('input-canchas-in').value = canchasIndoorGlobal; document.getElementById('input-precio-in').value = precioIndoorGlobal;
-                    document.getElementById('input-canchas-out').value = canchasOutdoorGlobal; document.getElementById('input-precio-out').value = precioOutdoorGlobal;
-                    document.getElementById('input-canchas-tenis').value = canchasTenisGlobal; document.getElementById('input-precio-tenis').value = precioTenisGlobal;
-                    document.getElementById('input-telefono-club').value = telefonoClubGlobal; 
-                    [0,1,2,3,4,5,6].forEach(d => { const cb = document.getElementById('dia-'+d); if(cb) cb.checked = diasAbiertosGlobal.includes(d); });
-                }
-                if(window.usuarioRol === 'admin') renderizarPantallas(); 
-            });
-
-            // 2. Filtrar colecciones por clubId (SI ES ADMIN)
-            if(window.usuarioRol === 'admin') {
-                onSnapshot(query(collection(db, "reservas"), where("clubId", "==", window.clubIdActual)), (s) => { reservasGlobales=[]; s.forEach(d=>reservasGlobales.push({id:d.id,...d.data()})); renderizarPantallas(); renderizarIngresos(); renderizarClasesPendientes(); renderizarHistorial(); });
-                onSnapshot(query(collection(db, "inventario"), where("clubId", "==", window.clubIdActual)), (s) => { inventarioGlobal=[]; s.forEach(d=>inventarioGlobal.push({id:d.id,...d.data()})); renderizarInventario(); });
-                onSnapshot(query(collection(db, "gastos"), where("clubId", "==", window.clubIdActual)), (s) => { gastosGlobal=[]; s.forEach(d=>gastosGlobal.push({id:d.id,...d.data()})); renderizarGastos(); renderizarHistorial(); });
-                onSnapshot(query(collection(db, "ingresos"), where("clubId", "==", window.clubIdActual)), (s) => { ingresosGlobal=[]; s.forEach(d=>ingresosGlobal.push({id:d.id,...d.data()})); renderizarIngresos(); renderizarHistorial(); });
-                onSnapshot(query(collection(db, "balances"), where("clubId", "==", window.clubIdActual)), (s) => { balancesGlobal=[]; s.forEach(d=>balancesGlobal.push({id:d.id,...d.data()})); renderizarBalances(); });
-                onSnapshot(query(collection(db, "profesores"), where("clubId", "==", window.clubIdActual)), (s) => { profesoresGlobal=[]; s.forEach(d=>profesoresGlobal.push({id:d.id,...d.data()})); renderizarProfesores(); });
-            }
-
-            // Torneos pueden ser leídos por admin o jugadores
-            onSnapshot(query(collection(db, "torneos_admin"), where("clubId", "==", window.clubIdActual)), (s) => { 
-                torneosAdminGlobal=[]; s.forEach(d=>torneosAdminGlobal.push({id:d.id,...d.data()})); 
-                if(window.usuarioRol === 'admin') renderizarTorneosAdmin();
-                if(typeof window.renderizarTorneosPublicos === 'function') window.renderizarTorneosPublicos(); 
-            });
-
-            // Matchmaking y Ranking son globales (no filtrados por club, según requerimiento)
+            // Matchmaking y Ranking son públicos (para todos)
             onSnapshot(collection(db, "matchmaking"), (s) => { 
                 matchmakingGlobal=[]; s.forEach(d=>matchmakingGlobal.push({id:d.id,...d.data()}));
                 if (document.getElementById('tab-unirse-partido') && document.getElementById('tab-unirse-partido').style.display === 'block') renderizarPartidosAbiertos();
                 if (document.getElementById('tab-resultados-partido') && document.getElementById('tab-resultados-partido').style.display === 'block') renderizarPartidosResultados();
             });
-            onSnapshot(collection(db, "ranking"), (s) => { rankingGlobal=[]; s.forEach(d=>rankingGlobal.push({id:d.id,...d.data()})); renderizarRanking(); });
+            
+            onSnapshot(collection(db, "ranking"), (s) => { 
+                rankingGlobal=[]; s.forEach(d=>rankingGlobal.push({id:d.id,...d.data()})); 
+                if(typeof window.renderizarRanking === 'function') window.renderizarRanking(); 
+            });
+
+            // Torneos: Si es Admin ve los suyos, si es Jugador ve todos los públicos
+            if(window.usuarioRol === 'admin' && window.clubIdActual) {
+                onSnapshot(query(collection(db, "torneos_admin"), where("clubId", "==", window.clubIdActual)), (s) => { 
+                    torneosAdminGlobal=[]; s.forEach(d=>torneosAdminGlobal.push({id:d.id,...d.data()})); 
+                    if(typeof window.renderizarTorneosAdmin === 'function') window.renderizarTorneosAdmin();
+                    if(typeof window.renderizarTorneosPublicos === 'function') window.renderizarTorneosPublicos(); 
+                });
+            } else {
+                onSnapshot(collection(db, "torneos_admin"), (s) => { 
+                    torneosAdminGlobal=[]; s.forEach(d=>torneosAdminGlobal.push({id:d.id,...d.data()})); 
+                    if(typeof window.renderizarTorneosPublicos === 'function') window.renderizarTorneosPublicos(); 
+                });
+            }
 
             renderizarCalendarios();
+
+            // 2. ESCUCHADORES EXCLUSIVOS DE ADMINISTRACIÓN (Solo si el usuario tiene club)
+            if(window.usuarioRol === 'admin' && window.clubIdActual) {
+                onSnapshot(doc(db, "configuracion", window.clubIdActual), (documento) => {
+                    if (documento.exists()) {
+                        let data = documento.data();
+                        primerTurno = data.primerTurno || "08:00"; ultimoTurno = data.ultimoTurno || "21:30";
+                        duracionGlobal = parseInt(data.duracionTurno) || 90; 
+                        canchasIndoorGlobal = isNaN(parseInt(data.canchasIndoor)) ? 1 : parseInt(data.canchasIndoor); 
+                        canchasOutdoorGlobal = isNaN(parseInt(data.canchasOutdoor)) ? 0 : parseInt(data.canchasOutdoor);
+                        canchasTenisGlobal = isNaN(parseInt(data.canchasTenis)) ? 0 : parseInt(data.canchasTenis);
+                        precioIndoorGlobal = data.precioIndoor || "15000"; precioOutdoorGlobal = data.precioOutdoor || "12000";
+                        precioTenisGlobal = data.precioTenis || "10000";
+                        diasAbiertosGlobal = data.diasAbiertos || [0,1,2,3,4,5,6]; 
+                        telefonoClubGlobal = data.telefonoClub || ""; 
+                    }
+                    
+                    if(document.getElementById('input-primer-turno')) {
+                        document.getElementById('input-primer-turno').value = primerTurno; document.getElementById('input-ultimo-turno').value = ultimoTurno;
+                        document.getElementById('input-duracion').value = duracionGlobal;
+                        document.getElementById('input-canchas-in').value = canchasIndoorGlobal; document.getElementById('input-precio-in').value = precioIndoorGlobal;
+                        document.getElementById('input-canchas-out').value = canchasOutdoorGlobal; document.getElementById('input-precio-out').value = precioOutdoorGlobal;
+                        document.getElementById('input-canchas-tenis').value = canchasTenisGlobal; document.getElementById('input-precio-tenis').value = precioTenisGlobal;
+                        document.getElementById('input-telefono-club').value = telefonoClubGlobal; 
+                        [0,1,2,3,4,5,6].forEach(d => { const cb = document.getElementById('dia-'+d); if(cb) cb.checked = diasAbiertosGlobal.includes(d); });
+                    }
+                    if(typeof window.renderizarPantallas === 'function') window.renderizarPantallas(); 
+                });
+
+                onSnapshot(query(collection(db, "reservas"), where("clubId", "==", window.clubIdActual)), (s) => { reservasGlobales=[]; s.forEach(d=>reservasGlobales.push({id:d.id,...d.data()})); if(typeof window.renderizarPantallas === 'function') window.renderizarPantallas(); if(typeof window.renderizarIngresos === 'function') window.renderizarIngresos(); if(typeof window.renderizarClasesPendientes === 'function') window.renderizarClasesPendientes(); if(typeof window.renderizarHistorial === 'function') window.renderizarHistorial(); });
+                onSnapshot(query(collection(db, "inventario"), where("clubId", "==", window.clubIdActual)), (s) => { inventarioGlobal=[]; s.forEach(d=>inventarioGlobal.push({id:d.id,...d.data()})); if(typeof window.renderizarInventario === 'function') window.renderizarInventario(); });
+                onSnapshot(query(collection(db, "gastos"), where("clubId", "==", window.clubIdActual)), (s) => { gastosGlobal=[]; s.forEach(d=>gastosGlobal.push({id:d.id,...d.data()})); if(typeof window.renderizarGastos === 'function') window.renderizarGastos(); if(typeof window.renderizarHistorial === 'function') window.renderizarHistorial(); });
+                onSnapshot(query(collection(db, "ingresos"), where("clubId", "==", window.clubIdActual)), (s) => { ingresosGlobal=[]; s.forEach(d=>ingresosGlobal.push({id:d.id,...d.data()})); if(typeof window.renderizarIngresos === 'function') window.renderizarIngresos(); if(typeof window.renderizarHistorial === 'function') window.renderizarHistorial(); });
+                onSnapshot(query(collection(db, "balances"), where("clubId", "==", window.clubIdActual)), (s) => { balancesGlobal=[]; s.forEach(d=>balancesGlobal.push({id:d.id,...d.data()})); if(typeof window.renderizarBalances === 'function') window.renderizarBalances(); });
+                onSnapshot(query(collection(db, "profesores"), where("clubId", "==", window.clubIdActual)), (s) => { profesoresGlobal=[]; s.forEach(d=>profesoresGlobal.push({id:d.id,...d.data()})); if(typeof window.renderizarProfesores === 'function') window.renderizarProfesores(); });
+            }
         }
     </script>
 </body>
