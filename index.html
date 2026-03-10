@@ -2165,6 +2165,163 @@
         }
         
        // --- CIRCUITO COMPETITIVO (Global) ---
+        // --- SISTEMA DE AMIGOS ---
+        window.solicitudesPendientes = [];
+
+        window.abrirModalAmigos = function() {
+            document.getElementById('modal-amigos').style.display = 'flex';
+            window.renderizarAmigos();
+            window.renderizarSolicitudes();
+        };
+
+        window.cerrarModalAmigos = function() {
+            document.getElementById('modal-amigos').style.display = 'none';
+            document.getElementById('res-busqueda-amigos').innerHTML = '';
+            document.getElementById('input-buscar-amigo').value = '';
+        };
+
+        window.buscarAmigo = async function() {
+            const input = document.getElementById('input-buscar-amigo').value.trim();
+            if(!input) return;
+            const resDiv = document.getElementById('res-busqueda-amigos');
+            resDiv.innerHTML = "<div style='text-align:center; color:#9ca3af;'>Buscando jugador...</div>";
+
+            let resultados = [];
+            
+            // 1. Buscar por DNI exacto
+            const qDni = query(collection(db, "usuarios"), where("dni", "==", input), limit(1));
+            const snapDni = await getDocs(qDni);
+            snapDni.forEach(d => { if(d.id !== window.usuarioLogueadoUID && d.data().perfilCompleto) resultados.push({id: d.id, ...d.data()}) });
+
+            // 2. Si no hay por DNI, buscar por Nombre
+            if(resultados.length === 0) {
+                const qNombre = query(collection(db, "usuarios"), where("nombreCompleto", "==", input));
+                const snapNombre = await getDocs(qNombre);
+                snapNombre.forEach(d => { if(d.id !== window.usuarioLogueadoUID && d.data().perfilCompleto) resultados.push({id: d.id, ...d.data()}) });
+            }
+
+            resDiv.innerHTML = '';
+            if(resultados.length === 0) { 
+                resDiv.innerHTML = "<div style='text-align:center; color:#ef4444;'>No se encontró nadie con ese dato.</div>"; 
+                return; 
+            }
+
+            resultados.forEach(u => {
+                let misAmigos = window.perfilJugador.amigos || [];
+                let yaEsAmigo = misAmigos.some(a => a.uid === u.id);
+                let btn = yaEsAmigo ? 
+                    `<span style="color:#10b981; font-size:0.85em; font-weight:bold;">Ya son amigos</span>` : 
+                    `<button class="btn-modal btn-guardar" style="width:auto; padding:5px 10px; font-size:0.85em; background-color:#3b82f6;" onclick="window.enviarSolicitudAmistad('${u.id}', '${u.nombreCompleto}')">Invitar</button>`;
+                
+                resDiv.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#1e252d; border:1px solid #44505d; border-radius:6px; margin-bottom:5px;">
+                        <div style="text-align:left;">
+                            <strong style="color:#d1d5db;">${u.nombreCompleto}</strong><br>
+                            <small style="color:#9ca3af;">DNI: ${u.dni}</small>
+                        </div>
+                        ${btn}
+                    </div>`;
+            });
+        };
+
+        window.enviarSolicitudAmistad = async function(receptorUid, receptorNombre) {
+            try {
+                await addDoc(collection(db, "solicitudes_amistad"), {
+                    solicitanteId: window.usuarioLogueadoUID,
+                    solicitanteNombre: window.perfilJugador.nombreCompleto,
+                    receptorId: receptorUid,
+                    receptorNombre: receptorNombre,
+                    fecha: serverTimestamp()
+                });
+                alert(`¡Solicitud enviada a ${receptorNombre}!`);
+                document.getElementById('res-busqueda-amigos').innerHTML = '';
+            } catch(e) {
+                alert("Error al enviar la solicitud.");
+            }
+        };
+
+        window.renderizarAmigos = function() {
+            const div = document.getElementById('lista-mis-amigos');
+            if(!div) return;
+            div.innerHTML = '';
+            let misAmigos = window.perfilJugador.amigos || [];
+            
+            if(misAmigos.length === 0) {
+                div.innerHTML = '<div style="color:#9ca3af; text-align:center; padding:15px; font-size:0.9em;">Aún no tienes amigos agregados.</div>';
+            } else {
+                misAmigos.forEach(a => {
+                    div.innerHTML += `<div style="padding:10px; border-bottom:1px solid #2c3540; color:#d1d5db;">🎾 <strong>${a.nombre}</strong></div>`;
+                });
+            }
+
+            // Actualizar desplegables de "Pareja" en modales de partidos
+            let options = '<option value="" disabled selected>Elige a tu compañero...</option>';
+            if(misAmigos.length > 0) {
+                misAmigos.forEach(a => { options += `<option value="${a.nombre}">${a.nombre}</option>`; });
+            } else {
+                options = '<option value="" disabled selected>No tienes amigos agregados</option>';
+            }
+            
+            if(document.getElementById('comp-nombre-amigo')) document.getElementById('comp-nombre-amigo').innerHTML = options;
+            if(document.getElementById('unirse-nombre-amigo')) document.getElementById('unirse-nombre-amigo').innerHTML = options;
+        };
+
+        window.renderizarSolicitudes = function() {
+            const div = document.getElementById('lista-solicitudes');
+            if(!div) return;
+            div.innerHTML = '';
+            
+            if(window.solicitudesPendientes.length === 0) {
+                div.innerHTML = '<div style="color:#9ca3af; text-align:center; padding:10px; font-size:0.85em;">No hay solicitudes pendientes.</div>';
+                return;
+            }
+
+            window.solicitudesPendientes.forEach(sol => {
+                div.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#1e252d; border:1px solid #44505d; border-radius:6px; margin-bottom:5px;">
+                        <div style="text-align:left; font-size:0.9em;">
+                            <strong style="color:#f59e0b;">${sol.solicitanteNombre}</strong>
+                        </div>
+                        <div style="display:flex; gap:5px;">
+                            <button class="btn-modal btn-guardar" style="width:auto; padding:5px 10px; font-size:0.85em;" onclick="window.aceptarSolicitud('${sol.id}', '${sol.solicitanteId}', '${sol.solicitanteNombre}')">✔️ Aceptar</button>
+                            <button class="btn-modal btn-eliminar" style="width:auto; padding:5px 10px; font-size:0.85em;" onclick="window.rechazarSolicitud('${sol.id}')">❌</button>
+                        </div>
+                    </div>`;
+            });
+        };
+
+        window.aceptarSolicitud = async function(idSolicitud, solicitanteUid, solicitanteNombre) {
+            try {
+                const miDocRef = doc(db, "usuarios", window.usuarioLogueadoUID);
+                const suDocRef = doc(db, "usuarios", solicitanteUid);
+
+                let miSnap = await getDoc(miDocRef);
+                let suSnap = await getDoc(suDocRef);
+
+                let misAmigos = miSnap.data().amigos || [];
+                let susAmigos = suSnap.data().amigos || [];
+
+                if(!misAmigos.some(a => a.uid === solicitanteUid)) {
+                    misAmigos.push({ uid: solicitanteUid, nombre: solicitanteNombre });
+                    await updateDoc(miDocRef, { amigos: misAmigos });
+                    window.perfilJugador.amigos = misAmigos; 
+                }
+                if(!susAmigos.some(a => a.uid === window.usuarioLogueadoUID)) {
+                    susAmigos.push({ uid: window.usuarioLogueadoUID, nombre: window.perfilJugador.nombreCompleto });
+                    await updateDoc(suDocRef, { amigos: susAmigos });
+                }
+
+                await deleteDoc(doc(db, "solicitudes_amistad", idSolicitud));
+                alert("¡Amigo agregado con éxito!");
+                window.renderizarAmigos();
+            } catch(e) { alert("Error al aceptar solicitud."); }
+        };
+
+        window.rechazarSolicitud = async function(idSolicitud) {
+            try { await deleteDoc(doc(db, "solicitudes_amistad", idSolicitud)); } 
+            catch(e) { alert("Error al rechazar."); }
+        };
+        
         window.cambiarSubVistaCompetitiva = function(v) {
             document.getElementById('subvista-ranking').style.display = v === 'ranking' ? 'block' : 'none';
             document.getElementById('subvista-torneos').style.display = v === 'torneos' ? 'block' : 'none';
