@@ -2197,167 +2197,7 @@
             }
         }
         
-       // --- CIRCUITO COMPETITIVO (Global) ---
-        // --- SISTEMA DE AMIGOS ---
-        window.solicitudesPendientes = [];
-
-        window.abrirModalAmigos = function() {
-            document.getElementById('modal-amigos').style.display = 'flex';
-            window.renderizarAmigos();
-            window.renderizarSolicitudes();
-        };
-
-        window.cerrarModalAmigos = function() {
-            document.getElementById('modal-amigos').style.display = 'none';
-            document.getElementById('res-busqueda-amigos').innerHTML = '';
-            document.getElementById('input-buscar-amigo').value = '';
-        };
-
-        window.buscarAmigo = async function() {
-            const input = document.getElementById('input-buscar-amigo').value.trim();
-            if(!input) return;
-            const resDiv = document.getElementById('res-busqueda-amigos');
-            resDiv.innerHTML = "<div style='text-align:center; color:#9ca3af;'>Buscando jugador...</div>";
-
-            let resultados = [];
-            
-            // 1. Buscar por DNI exacto
-            const qDni = query(collection(db, "usuarios"), where("dni", "==", input), limit(1));
-            const snapDni = await getDocs(qDni);
-            snapDni.forEach(d => { if(d.id !== window.usuarioLogueadoUID && d.data().perfilCompleto) resultados.push({id: d.id, ...d.data()}) });
-
-            // 2. Si no hay por DNI, buscar por Nombre
-            if(resultados.length === 0) {
-                const qNombre = query(collection(db, "usuarios"), where("nombreCompleto", "==", input));
-                const snapNombre = await getDocs(qNombre);
-                snapNombre.forEach(d => { if(d.id !== window.usuarioLogueadoUID && d.data().perfilCompleto) resultados.push({id: d.id, ...d.data()}) });
-            }
-
-            resDiv.innerHTML = '';
-            if(resultados.length === 0) { 
-                resDiv.innerHTML = "<div style='text-align:center; color:#ef4444;'>No se encontró nadie con ese dato.</div>"; 
-                return; 
-            }
-
-            resultados.forEach(u => {
-                let misAmigos = window.perfilJugador.amigos || [];
-                let yaEsAmigo = misAmigos.some(a => a.uid === u.id);
-                let btn = yaEsAmigo ? 
-                    `<span style="color:#10b981; font-size:0.85em; font-weight:bold;">Ya son amigos</span>` : 
-                    `<button class="btn-modal btn-guardar" style="width:auto; padding:5px 10px; font-size:0.85em; background-color:#3b82f6;" onclick="window.enviarSolicitudAmistad('${u.id}', '${u.nombreCompleto}')">Invitar</button>`;
-                
-                resDiv.innerHTML += `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#1e252d; border:1px solid #44505d; border-radius:6px; margin-bottom:5px;">
-                        <div style="text-align:left;">
-                            <strong style="color:#d1d5db;">${u.nombreCompleto}</strong><br>
-                            <small style="color:#9ca3af;">DNI: ${u.dni}</small>
-                        </div>
-                        ${btn}
-                    </div>`;
-            });
-        };
-
-        window.enviarSolicitudAmistad = async function(receptorUid, receptorNombre) {
-            try {
-                await addDoc(collection(db, "solicitudes_amistad"), {
-                    solicitanteId: window.usuarioLogueadoUID,
-                    solicitanteNombre: window.perfilJugador.nombreCompleto,
-                    receptorId: receptorUid,
-                    receptorNombre: receptorNombre,
-                    fecha: serverTimestamp()
-                });
-                alert(`¡Solicitud enviada a ${receptorNombre}!`);
-                document.getElementById('res-busqueda-amigos').innerHTML = '';
-            } catch(e) {
-                alert("Error al enviar la solicitud.");
-            }
-        };
-
-       window.renderizarAmigos = function() {
-            const div = document.getElementById('lista-mis-amigos');
-            if(!div) return;
-            div.innerHTML = '';
-            
-            // PROTECCIÓN CLAVE: Si el perfil aún no carga o no tiene la propiedad 'amigos', crearla vacía
-            if(!window.perfilJugador) window.perfilJugador = {};
-            let misAmigos = window.perfilJugador.amigos || [];
-            
-            if(misAmigos.length === 0) {
-                div.innerHTML = '<div style="color:#9ca3af; text-align:center; padding:15px; font-size:0.9em;">Aún no tienes amigos agregados.</div>';
-            } else {
-                misAmigos.forEach(a => {
-                    div.innerHTML += `<div style="padding:10px; border-bottom:1px solid #2c3540; color:#d1d5db;">🎾 <strong>${a.nombre}</strong></div>`;
-                });
-            }
-
-            // Actualizar desplegables de "Pareja" en modales de partidos
-            let options = '<option value="" disabled selected>Elige a tu compañero...</option>';
-            if(misAmigos.length > 0) {
-                misAmigos.forEach(a => { options += `<option value="${a.nombre}">${a.nombre}</option>`; });
-            } else {
-                options = '<option value="" disabled selected>No tienes amigos agregados</option>';
-            }
-            
-            if(document.getElementById('comp-nombre-amigo')) document.getElementById('comp-nombre-amigo').innerHTML = options;
-            if(document.getElementById('unirse-nombre-amigo')) document.getElementById('unirse-nombre-amigo').innerHTML = options;
-        };
-        
-        window.renderizarSolicitudes = function() {
-            const div = document.getElementById('lista-solicitudes');
-            if(!div) return;
-            div.innerHTML = '';
-            
-            if(window.solicitudesPendientes.length === 0) {
-                div.innerHTML = '<div style="color:#9ca3af; text-align:center; padding:10px; font-size:0.85em;">No hay solicitudes pendientes.</div>';
-                return;
-            }
-
-            window.solicitudesPendientes.forEach(sol => {
-                div.innerHTML += `
-                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#1e252d; border:1px solid #44505d; border-radius:6px; margin-bottom:5px;">
-                        <div style="text-align:left; font-size:0.9em;">
-                            <strong style="color:#f59e0b;">${sol.solicitanteNombre}</strong>
-                        </div>
-                        <div style="display:flex; gap:5px;">
-                            <button class="btn-modal btn-guardar" style="width:auto; padding:5px 10px; font-size:0.85em;" onclick="window.aceptarSolicitud('${sol.id}', '${sol.solicitanteId}', '${sol.solicitanteNombre}')">✔️ Aceptar</button>
-                            <button class="btn-modal btn-eliminar" style="width:auto; padding:5px 10px; font-size:0.85em;" onclick="window.rechazarSolicitud('${sol.id}')">❌</button>
-                        </div>
-                    </div>`;
-            });
-        };
-
-        window.aceptarSolicitud = async function(idSolicitud, solicitanteUid, solicitanteNombre) {
-            try {
-                const miDocRef = doc(db, "usuarios", window.usuarioLogueadoUID);
-                const suDocRef = doc(db, "usuarios", solicitanteUid);
-
-                let miSnap = await getDoc(miDocRef);
-                let suSnap = await getDoc(suDocRef);
-
-                let misAmigos = miSnap.data().amigos || [];
-                let susAmigos = suSnap.data().amigos || [];
-
-                if(!misAmigos.some(a => a.uid === solicitanteUid)) {
-                    misAmigos.push({ uid: solicitanteUid, nombre: solicitanteNombre });
-                    await updateDoc(miDocRef, { amigos: misAmigos });
-                    window.perfilJugador.amigos = misAmigos; 
-                }
-                if(!susAmigos.some(a => a.uid === window.usuarioLogueadoUID)) {
-                    susAmigos.push({ uid: window.usuarioLogueadoUID, nombre: window.perfilJugador.nombreCompleto });
-                    await updateDoc(suDocRef, { amigos: susAmigos });
-                }
-
-                await deleteDoc(doc(db, "solicitudes_amistad", idSolicitud));
-                alert("¡Amigo agregado con éxito!");
-                window.renderizarAmigos();
-            } catch(e) { alert("Error al aceptar solicitud."); }
-        };
-
-        window.rechazarSolicitud = async function(idSolicitud) {
-            try { await deleteDoc(doc(db, "solicitudes_amistad", idSolicitud)); } 
-            catch(e) { alert("Error al rechazar."); }
-        };
-        
+ // --- CIRCUITO COMPETITIVO (Global) ---
         window.cambiarSubVistaCompetitiva = function(v) {
             document.getElementById('subvista-ranking').style.display = v === 'ranking' ? 'block' : 'none';
             document.getElementById('subvista-torneos').style.display = v === 'torneos' ? 'block' : 'none';
@@ -2365,7 +2205,6 @@
             document.getElementById('btn-sub-torneos').style.backgroundColor = v==='torneos'?'#8b5cf6':'#242c36';
         };
 
-      // Renderiza la lista de torneos que ven los JUGADORES
         window.renderizarTorneosPublicos = function() {
             const div = document.getElementById('lista-torneos'); if(!div) return; div.innerHTML = '';
             
@@ -2380,7 +2219,6 @@
                 let inscriptos = t.inscriptos || [];
                 let cuposDisponibles = t.cupo - inscriptos.length;
                 
-                // MAGIA: Si no hay cupos o el admin ya cerró inscripciones (generó fase de grupos), saltar (no dibujar)
                 if (cuposDisponibles <= 0 || t.faseGrupos) return;
 
                 torneosMostrados++;
@@ -2401,103 +2239,307 @@
                 `; 
             });
 
-            // Si el bucle terminó y no dibujó nada (porque todos estaban llenos/en curso)
             if (torneosMostrados === 0) {
                 div.innerHTML = '<div style="padding: 20px; color: #9ca3af;">Por el momento no hay torneos con cupo disponible.</div>';
             }
         };
-        
+
         window.abrirModalInscripcionTorneo = function(id) { 
             const t = torneosAdminGlobal.find(x => x.id === id);
             if(!t) return;
             document.getElementById('inscripcion-torneo-id').value = id; 
             document.getElementById('lbl-inscripcion-torneo').innerHTML = `<strong>${t.nombre}</strong><br>Cupos libres: ${t.cupo - (t.inscriptos || []).length}`;
-            document.getElementById('inscripcion-nombre').value = '';
+            
+            document.getElementById('inscripcion-nombre-propio').value = window.perfilJugador?.nombreCompleto || 'Jugador Anónimo';
+            document.getElementById('inscripcion-tipo-pareja').value = 'amigo';
+            window.toggleAmigoInput('inscripcion-tipo-pareja', 'div-amigo-torneo');
+            
             document.getElementById('modal-inscribirse-torneo').style.display='flex'; 
         };
 
-        window.cerrarModalInscripcionTorneo = function() { 
-            document.getElementById('modal-inscribirse-torneo').style.display='none'; 
-        };
+        window.cerrarModalInscripcionTorneo = function() { document.getElementById('modal-inscribirse-torneo').style.display='none'; };
 
-        // Función que guarda al jugador en Firebase
         window.confirmarInscripcionTorneo = async function() {
             const id = document.getElementById('inscripcion-torneo-id').value; 
-            const nom = document.getElementById('inscripcion-nombre').value.trim();
+            const miNombre = document.getElementById('inscripcion-nombre-propio').value;
+            const tipoPareja = document.getElementById('inscripcion-tipo-pareja').value;
             
-            if(!nom) { alert("Ingresa tu nombre o el de tu pareja."); return; }
+            let nombreCompanero = "";
+            if (tipoPareja === 'amigo') {
+                nombreCompanero = document.getElementById('inscripcion-nombre-amigo').value;
+                if(!nombreCompanero) { alert("Selecciona un amigo de tu lista."); return; }
+            } else if (tipoPareja === 'externo') {
+                nombreCompanero = document.getElementById('inscripcion-nombre-externo').value.trim();
+                if(!nombreCompanero) { alert("Escribe el nombre de tu pareja externa."); return; }
+            }
 
+            const nombreInscripcion = `${miNombre} / ${nombreCompanero}`;
             const t = torneosAdminGlobal.find(x=>x.id===id); 
             if(!t) return;
-            
             let i = t.inscriptos || []; 
             if(i.length >= t.cupo) { alert("¡Ups! El torneo ya alcanzó su cupo máximo."); window.cerrarModalInscripcionTorneo(); return; } 
             
-            i.push(nom);
-            
+            i.push(nombreInscripcion);
             try {
                 await updateDoc(doc(db, "torneos_admin", id), { inscriptos: i }); 
-                alert("¡Inscripción exitosa! Ya formas parte del torneo.");
+                alert("¡Inscripción exitosa! Ya forman parte del torneo.");
                 window.cerrarModalInscripcionTorneo();
-            } catch(e) {
-                alert("Hubo un error al procesar tu inscripción.");
-            }
+            } catch(e) { alert("Hubo un error al procesar tu inscripción."); }
         };
 
-        window.abrirModalJugarCompetitivo = function() { window.cambiarTabCompetitivo('crear'); document.getElementById('modal-jugar-competitivo').style.display = 'flex'; };
+        window.abrirModalJugarCompetitivo = function() { 
+            window.cambiarTabCompetitivo('crear'); 
+            document.getElementById('comp-nombre-jugador').value = window.perfilJugador?.nombreCompleto || 'Jugador Anónimo';
+            document.getElementById('comp-pareja').value = 'random';
+            window.toggleAmigoInput('comp-pareja', 'div-amigo-comp');
+            document.getElementById('modal-jugar-competitivo').style.display = 'flex'; 
+        };
+
         window.cerrarModalJugarCompetitivo = function() { document.getElementById('modal-jugar-competitivo').style.display = 'none'; };
+        
         window.cambiarTabCompetitivo = function(t) {
             ['crear','unirse','resultados','historial'].forEach(x => { document.getElementById(`tab-${x}-partido`).style.display = (x===t)?'block':'none'; });
         };
-        window.toggleAmigoInput = function(s, d) { document.getElementById(d).style.display = document.getElementById(s).value === 'amigo' ? 'block' : 'none'; };
+        
+        window.toggleAmigoInput = function(selectId, divAmigoId) { 
+            const val = document.getElementById(selectId).value;
+            if (selectId === 'inscripcion-tipo-pareja') {
+                document.getElementById('div-amigo-torneo').style.display = val === 'amigo' ? 'block' : 'none';
+                document.getElementById('div-externo-torneo').style.display = val === 'externo' ? 'block' : 'none';
+            } else {
+                document.getElementById(divAmigoId).style.display = val === 'amigo' ? 'block' : 'none';
+                let divExternoId = divAmigoId === 'div-amigo-comp' ? 'div-externo-comp' : 'div-externo-unirse';
+                document.getElementById(divExternoId).style.display = val === 'externo' ? 'block' : 'none';
+            }
+        };
         
         window.llenarHorariosDisponiblesCompetitivo = function() {
             const sel = document.getElementById('comp-hora'); if(sel) sel.innerHTML = '<option value="18:00">18:00 hs</option><option value="19:30">19:30 hs</option>';
         };
         
         window.confirmarCrearCompetitivo = async function() {
-            await addDoc(collection(db, "matchmaking"), { fechaDeseada: fechaSeleccionada, creadorPrincipal: document.getElementById('comp-nombre-jugador').value, creadorCompañero: document.getElementById('comp-pareja').value==='amigo'?document.getElementById('comp-nombre-amigo').value:'Random', clubSeleccionado: document.getElementById('comp-club').value, tipoCancha: document.getElementById('comp-cancha').value, horaDeseada: document.getElementById('comp-hora').value, estado: 'Buscando Rival' });
+            const miNombre = document.getElementById('comp-nombre-jugador').value;
+            const tipoPareja = document.getElementById('comp-pareja').value;
+            
+            let nombreCompanero = "Random (Esperando)";
+            if (tipoPareja === 'amigo') {
+                nombreCompanero = document.getElementById('comp-nombre-amigo').value;
+                if(!nombreCompanero) { alert("Selecciona un amigo de tu lista."); return; }
+            } else if (tipoPareja === 'externo') {
+                nombreCompanero = document.getElementById('comp-nombre-externo').value.trim();
+                if(!nombreCompanero) { alert("Escribe el nombre de tu pareja externa."); return; }
+            }
+
+            await addDoc(collection(db, "matchmaking"), { 
+                fechaDeseada: fechaSeleccionada, 
+                creadorPrincipal: miNombre, 
+                creadorCompañero: nombreCompanero, 
+                clubSeleccionado: document.getElementById('comp-club').value, 
+                tipoCancha: document.getElementById('comp-cancha').value, 
+                horaDeseada: document.getElementById('comp-hora').value, 
+                estado: 'Buscando Rival' 
+            });
             window.cambiarTabCompetitivo('unirse');
         };
 
         window.renderizarPartidosAbiertos = function() {
             const div = document.getElementById('lista-partidos-abiertos'); if(!div) return; div.innerHTML = '';
-            matchmakingGlobal.filter(m=>m.estado==='Buscando Rival').forEach(m => { div.innerHTML += `<div style="border:1px solid #44505d; padding:5px; margin-bottom:5px;">${m.horaDeseada} hs en ${m.clubSeleccionado} <button onclick="window.abrirModalUnirseDetalle('${m.id}')">Unirse</button></div>`; });
+            matchmakingGlobal.filter(m=>m.estado==='Buscando Rival').forEach(m => { 
+                div.innerHTML += `<div style="border:1px solid #44505d; padding:10px; margin-bottom:5px; border-radius:6px; background:#1e252d;">
+                                    <strong style="color:#d1d5db;">${m.creadorPrincipal} / ${m.creadorCompañero}</strong><br>
+                                    <small style="color:#9ca3af;">${m.horaDeseada} hs en Cancha ${m.tipoCancha}</small>
+                                    <button class="btn-modal btn-guardar" style="width:100%; margin-top:5px; padding:6px; font-size:0.85em;" onclick="window.abrirModalUnirseDetalle('${m.id}')">Unirme al Partido</button>
+                                  </div>`; 
+            });
         };
-        window.abrirModalUnirseDetalle = function(id) { document.getElementById('unirse-partido-id').value = id; document.getElementById('modal-unirse-detalle').style.display = 'flex'; };
+
+        window.abrirModalUnirseDetalle = function(id) { 
+            const m = matchmakingGlobal.find(x => x.id === id);
+            if(!m) return;
+            document.getElementById('unirse-partido-id').value = id; 
+            document.getElementById('lbl-unirse-info').innerHTML = `Rivales: <strong>${m.creadorPrincipal} y ${m.creadorCompañero}</strong>`;
+            
+            document.getElementById('unirse-nombre').value = window.perfilJugador?.nombreCompleto || 'Jugador Anónimo';
+            document.getElementById('unirse-pareja').value = 'random';
+            window.toggleAmigoInput('unirse-pareja', 'div-amigo-unirse');
+
+            document.getElementById('modal-unirse-detalle').style.display = 'flex'; 
+        };
+
         window.cerrarModalUnirseDetalle = function() { document.getElementById('modal-unirse-detalle').style.display = 'none'; };
-        window.confirmarUnirsePartido = async function() { await updateDoc(doc(db, "matchmaking", document.getElementById('unirse-partido-id').value), { rivalPrincipal: document.getElementById('unirse-nombre').value, estado: 'Partido Confirmado' }); window.cerrarModalUnirseDetalle(); };
+        
+        window.confirmarUnirsePartido = async function() { 
+            const id = document.getElementById('unirse-partido-id').value;
+            const miNombre = document.getElementById('unirse-nombre').value;
+            const tipoPareja = document.getElementById('unirse-pareja').value;
+            
+            let nombreCompanero = "Random (Esperando)";
+            if (tipoPareja === 'amigo') {
+                nombreCompanero = document.getElementById('unirse-nombre-amigo').value;
+                if(!nombreCompanero) { alert("Selecciona un amigo de tu lista."); return; }
+            } else if (tipoPareja === 'externo') {
+                nombreCompanero = document.getElementById('unirse-nombre-externo').value.trim();
+                if(!nombreCompanero) { alert("Escribe el nombre de tu pareja externa."); return; }
+            }
+
+            const rivalFinal = `${miNombre} / ${nombreCompanero}`;
+            await updateDoc(doc(db, "matchmaking", id), { rivalPrincipal: rivalFinal, estado: 'Partido Confirmado' }); 
+            window.cerrarModalUnirseDetalle(); 
+        };
 
         window.renderizarPartidosResultados = function() {
             const div = document.getElementById('lista-partidos-resultados'); if(!div) return; div.innerHTML = '';
-            matchmakingGlobal.filter(m=>m.estado==='Partido Confirmado').forEach(m => { div.innerHTML += `<div style="border:1px solid #44505d; padding:5px; margin-bottom:5px;">${m.creadorPrincipal} vs ${m.rivalPrincipal} <button onclick="window.abrirModalResultado('${m.id}')">Cargar</button></div>`; });
+            matchmakingGlobal.filter(m=>m.estado==='Partido Confirmado').forEach(m => { 
+                div.innerHTML += `<div style="border:1px solid #44505d; padding:10px; margin-bottom:5px; border-radius:6px; background:#1e252d;">
+                                    <div style="color:#d1d5db; font-size:0.9em; text-align:center; margin-bottom:8px;">
+                                        <span style="color:#3b82f6;">Eq 1:</span> ${m.creadorPrincipal} y ${m.creadorCompañero} <br><strong style="color:#f59e0b;">VS</strong><br>
+                                        <span style="color:#ef4444;">Eq 2:</span> ${m.rivalPrincipal}
+                                    </div>
+                                    <button class="btn-modal btn-guardar" style="width:100%; padding:6px; font-size:0.85em; background-color:#10b981;" onclick="window.abrirModalResultado('${m.id}', '${m.creadorPrincipal}', '${m.rivalPrincipal}')">Cargar Ganador</button>
+                                  </div>`; 
+            });
         };
-        window.abrirModalResultado = function(id) { document.getElementById('resultado-partido-id').value = id; document.getElementById('btn-ganador-eq1').innerText=`Ganó Eq1`; document.getElementById('btn-ganador-eq2').innerText=`Ganó Eq2`; document.getElementById('modal-cargar-resultado').style.display = 'flex'; };
+
+        window.abrirModalResultado = function(id, eq1, eq2) { 
+            document.getElementById('resultado-partido-id').value = id; 
+            document.getElementById('btn-ganador-eq1').innerText = `Ganó: ${eq1.split('/')[0]}`; 
+            document.getElementById('btn-ganador-eq2').innerText = `Ganó: ${eq2.split('/')[0]}`; 
+            document.getElementById('modal-cargar-resultado').style.display = 'flex'; 
+        };
+
         window.cerrarModalResultado = function() { document.getElementById('modal-cargar-resultado').style.display = 'none'; };
         window.confirmarResultado = async function(g) { await updateDoc(doc(db, "matchmaking", document.getElementById('resultado-partido-id').value), { estado: 'Finalizado', ganador: g }); window.cerrarModalResultado(); };
-        window.renderizarHistorialCompetitivo = function() { const div = document.getElementById('lista-partidos-historial'); if(div) div.innerHTML = matchmakingGlobal.filter(m=>m.estado==='Finalizado').map(m=>`<p>${m.fechaDeseada}: Eq${m.ganador} Gana</p>`).join(''); };
+        
+        window.renderizarHistorialCompetitivo = function() { 
+            const div = document.getElementById('lista-partidos-historial'); if(div) div.innerHTML = '';
+            matchmakingGlobal.filter(m=>m.estado==='Finalizado').forEach(m => {
+                let txtGanador = m.ganador === 1 ? m.creadorPrincipal : m.rivalPrincipal;
+                div.innerHTML += `<div style="border-bottom:1px solid #2c3540; padding:8px 0; color:#d1d5db; font-size:0.85em;">
+                                    📅 ${m.fechaDeseada} - Ganador: <strong style="color:#10b981;">${txtGanador}</strong>
+                                  </div>`;
+            });
+        };
 
-      window.renderizarRanking = function() {
+        window.renderizarRanking = function() {
             const tb = document.getElementById('lista-ranking'); if(!tb) return; tb.innerHTML = '';
-            
-            // Si la base de datos de ranking está vacía
             if (!rankingGlobal || rankingGlobal.length === 0) {
                 tb.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #9ca3af; padding: 15px;">Aún no hay jugadores clasificados.</td></tr>';
                 return;
             }
-
-            // Ordenar de mayor a menor puntaje (con protección contra valores nulos)
             rankingGlobal.sort((a,b) => (b.puntos || 0) - (a.puntos || 0)).forEach((j, i) => { 
-                let pts = j.puntos || 0;
-                let pj = j.partidosJugados || 0;
-                tb.innerHTML += `<tr>
-                                    <td style="text-align: center;"><strong>${i+1}</strong></td>
-                                    <td>${j.nombre || 'Anónimo'}</td>
-                                    <td style="text-align: center; color: #f59e0b;"><strong>${pts}</strong></td>
-                                    <td style="text-align: center;">${pj}</td>
-                                 </tr>`; 
+                tb.innerHTML += `<tr><td style="text-align: center;"><strong>${i+1}</strong></td><td>${j.nombre || 'Anónimo'}</td><td style="text-align: center; color: #f59e0b;"><strong>${j.puntos || 0}</strong></td><td style="text-align: center;">${j.partidosJugados || 0}</td></tr>`; 
             });
         };
+
+        // --- SISTEMA DE AMIGOS ---
+        window.solicitudesPendientes = [];
+
+        window.abrirModalAmigos = function() {
+            document.getElementById('modal-amigos').style.display = 'flex';
+            window.renderizarAmigos();
+            window.renderizarSolicitudes();
+        };
+
+        window.cerrarModalAmigos = function() {
+            document.getElementById('modal-amigos').style.display = 'none';
+            document.getElementById('res-busqueda-amigos').innerHTML = '';
+            document.getElementById('input-buscar-amigo').value = '';
+        };
+
+        window.buscarAmigo = async function() {
+            if(!window.perfilJugador) return;
+            const input = document.getElementById('input-buscar-amigo').value.trim();
+            if(!input) return;
+            const resDiv = document.getElementById('res-busqueda-amigos');
+            resDiv.innerHTML = "<div style='text-align:center; color:#9ca3af;'>Buscando jugador...</div>";
+
+            let resultados = [];
+            const qDni = query(collection(db, "usuarios"), where("dni", "==", input), limit(1));
+            const snapDni = await getDocs(qDni);
+            snapDni.forEach(d => { if(d.id !== window.usuarioLogueadoUID && d.data().perfilCompleto) resultados.push({id: d.id, ...d.data()}) });
+
+            if(resultados.length === 0) {
+                const qNombre = query(collection(db, "usuarios"), where("nombreCompleto", "==", input));
+                const snapNombre = await getDocs(qNombre);
+                snapNombre.forEach(d => { if(d.id !== window.usuarioLogueadoUID && d.data().perfilCompleto) resultados.push({id: d.id, ...d.data()}) });
+            }
+
+            resDiv.innerHTML = '';
+            if(resultados.length === 0) { resDiv.innerHTML = "<div style='text-align:center; color:#ef4444;'>No se encontró nadie con ese dato.</div>"; return; }
+
+            resultados.forEach(u => {
+                let misAmigos = window.perfilJugador.amigos || [];
+                let yaEsAmigo = misAmigos.some(a => a.uid === u.id);
+                let btn = yaEsAmigo ? `<span style="color:#10b981; font-size:0.85em; font-weight:bold;">Ya son amigos</span>` : `<button class="btn-modal btn-guardar" style="width:auto; padding:5px 10px; font-size:0.85em; background-color:#3b82f6;" onclick="window.enviarSolicitudAmistad('${u.id}', '${u.nombreCompleto}')">Invitar</button>`;
+                resDiv.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#1e252d; border:1px solid #44505d; border-radius:6px; margin-bottom:5px;"><div style="text-align:left;"><strong style="color:#d1d5db;">${u.nombreCompleto}</strong><br><small style="color:#9ca3af;">DNI: ${u.dni}</small></div>${btn}</div>`;
+            });
+        };
+
+        window.enviarSolicitudAmistad = async function(receptorUid, receptorNombre) {
+            try {
+                await addDoc(collection(db, "solicitudes_amistad"), { solicitanteId: window.usuarioLogueadoUID, solicitanteNombre: window.perfilJugador.nombreCompleto, receptorId: receptorUid, receptorNombre: receptorNombre, fecha: serverTimestamp() });
+                alert(`¡Solicitud enviada a ${receptorNombre}!`);
+                document.getElementById('res-busqueda-amigos').innerHTML = '';
+            } catch(e) { alert("Error al enviar la solicitud."); }
+        };
+
+        window.renderizarAmigos = function() {
+            const div = document.getElementById('lista-mis-amigos');
+            if(!div) return;
+            div.innerHTML = '';
+            
+            if(!window.perfilJugador) window.perfilJugador = {};
+            let misAmigos = window.perfilJugador.amigos || [];
+            
+            if(misAmigos.length === 0) {
+                div.innerHTML = '<div style="color:#9ca3af; text-align:center; padding:15px; font-size:0.9em;">Aún no tienes amigos agregados.</div>';
+            } else {
+                misAmigos.forEach(a => { div.innerHTML += `<div style="padding:10px; border-bottom:1px solid #2c3540; color:#d1d5db;">🎾 <strong>${a.nombre}</strong></div>`; });
+            }
+
+            let options = '<option value="" disabled selected>Elige a tu compañero...</option>';
+            if(misAmigos.length > 0) { misAmigos.forEach(a => { options += `<option value="${a.nombre}">${a.nombre}</option>`; }); } 
+            else { options = '<option value="" disabled selected>No tienes amigos agregados</option>'; }
+            
+            if(document.getElementById('comp-nombre-amigo')) document.getElementById('comp-nombre-amigo').innerHTML = options;
+            if(document.getElementById('unirse-nombre-amigo')) document.getElementById('unirse-nombre-amigo').innerHTML = options;
+            if(document.getElementById('inscripcion-nombre-amigo')) document.getElementById('inscripcion-nombre-amigo').innerHTML = options;
+        };
+
+        window.renderizarSolicitudes = function() {
+            const div = document.getElementById('lista-solicitudes');
+            if(!div) return; div.innerHTML = '';
+            if(window.solicitudesPendientes.length === 0) {
+                div.innerHTML = '<div style="color:#9ca3af; text-align:center; padding:10px; font-size:0.85em;">No hay solicitudes pendientes.</div>'; return;
+            }
+            window.solicitudesPendientes.forEach(sol => {
+                div.innerHTML += `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:#1e252d; border:1px solid #44505d; border-radius:6px; margin-bottom:5px;"><div style="text-align:left; font-size:0.9em;"><strong style="color:#f59e0b;">${sol.solicitanteNombre}</strong></div><div style="display:flex; gap:5px;"><button class="btn-modal btn-guardar" style="width:auto; padding:5px 10px; font-size:0.85em;" onclick="window.aceptarSolicitud('${sol.id}', '${sol.solicitanteId}', '${sol.solicitanteNombre}')">✔️ Aceptar</button><button class="btn-modal btn-eliminar" style="width:auto; padding:5px 10px; font-size:0.85em;" onclick="window.rechazarSolicitud('${sol.id}')">❌</button></div></div>`;
+            });
+        };
+
+        window.aceptarSolicitud = async function(idSolicitud, solicitanteUid, solicitanteNombre) {
+            try {
+                const miDocRef = doc(db, "usuarios", window.usuarioLogueadoUID);
+                const suDocRef = doc(db, "usuarios", solicitanteUid);
+                let miSnap = await getDoc(miDocRef); let suSnap = await getDoc(suDocRef);
+                let misAmigos = miSnap.data().amigos || []; let susAmigos = suSnap.data().amigos || [];
+
+                if(!misAmigos.some(a => a.uid === solicitanteUid)) {
+                    misAmigos.push({ uid: solicitanteUid, nombre: solicitanteNombre });
+                    await updateDoc(miDocRef, { amigos: misAmigos });
+                    window.perfilJugador.amigos = misAmigos; 
+                }
+                if(!susAmigos.some(a => a.uid === window.usuarioLogueadoUID)) {
+                    susAmigos.push({ uid: window.usuarioLogueadoUID, nombre: window.perfilJugador.nombreCompleto });
+                    await updateDoc(suDocRef, { amigos: susAmigos });
+                }
+                await deleteDoc(doc(db, "solicitudes_amistad", idSolicitud));
+                alert("¡Amigo agregado con éxito!");
+                window.renderizarAmigos();
+            } catch(e) { alert("Error al aceptar solicitud."); }
+        };
+
+        window.rechazarSolicitud = async function(idSolicitud) { try { await deleteDoc(doc(db, "solicitudes_amistad", idSolicitud)); } catch(e) { alert("Error al rechazar."); } };
         
         // --- MÉTRICAS Y GRÁFICOS AVANZADOS (CHART.JS) ---
         window.abrirModalMetricas = function() { 
