@@ -796,7 +796,7 @@
             </div>
         </div>
 
-        <div id="modal-jugar-competitivo" class="modal-overlay" style="z-index: 1250;">
+      <div id="modal-jugar-competitivo" class="modal-overlay" style="z-index: 1250;">
             <div class="modal-content" style="max-width: 480px; padding: 20px;">
                 <div style="display: flex; gap: 4px; margin-bottom: 15px; border-bottom: 2px solid #2c3540; padding-bottom: 15px; flex-wrap: wrap;">
                     <button id="tab-btn-crear" class="btn-vista activo" style="flex: 1; min-width: 80px; padding: 8px; font-size: 0.85em; background-color: #f59e0b; border-color: #f59e0b;" onclick="window.cambiarTabCompetitivo('crear')">➕ Crear</button>
@@ -811,15 +811,15 @@
                         <div id="calendario-competitivo" class="calendario-strip" style="margin-bottom: 0; padding-bottom: 5px;"></div>
                     </div>
 
-                    <div>
-                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Tu Nombre / Jugador 1:</label>
-                        <input type="text" id="comp-nombre-jugador" class="input-form" placeholder="Ej: Tu nombre..." style="margin-top: 4px;">
+                    <div style="background: #242c36; padding: 10px; border-radius: 6px; border: 1px solid #44505d;">
+                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Jugador 1 (Tú):</label>
+                        <input type="text" id="comp-nombre-jugador" class="input-form" disabled style="background-color: #171d24; color: #10b981; margin-top: 4px; font-weight: bold;">
                     </div>
                     
                     <div>
                         <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">1. ¿En qué Club querés jugar?</label>
                         <select id="comp-club" class="input-form" style="margin-top: 4px;">
-                            <option value="Orbit">Orbit</option>
+                            <option value="Greenpoint">Greenpoint</option> 
                         </select>
                     </div>
 
@@ -842,14 +842,20 @@
                     <div>
                         <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">4. Tu Pareja:</label>
                         <select id="comp-pareja" class="input-form" style="margin-top: 4px;" onchange="window.toggleAmigoInput('comp-pareja', 'div-amigo-comp')">
-                            <option value="random">🎲 Pareja Random</option>
-                            <option value="amigo">🤝 Invitar a un amigo</option>
+                            <option value="random" selected>🎲 Pareja Random (Esperar a otro)</option>
+                            <option value="amigo">🤝 Invitar a un amigo de mi lista</option>
+                            <option value="externo">➕ Anotar amigo externo</option>
                         </select>
                     </div>
 
                     <div id="div-amigo-comp" style="display: none; padding-top: 5px; border-top: 1px dashed #44505d;">
-                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Nombre de tu compañero/a:</label>
+                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Selecciona tu compañero/a:</label>
                         <select id="comp-nombre-amigo" class="input-form" style="margin-top: 4px;"><option value="" disabled selected>No tienes amigos agregados</option></select>
+                    </div>
+                    
+                    <div id="div-externo-comp" style="display: none; padding-top: 5px; border-top: 1px dashed #44505d;">
+                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Nombre del amigo externo:</label>
+                        <input type="text" id="comp-nombre-externo" class="input-form" placeholder="Ej: Martín Perez" style="margin-top: 4px;">
                     </div>
 
                     <button class="btn-modal btn-guardar" style="margin-top: 15px; background-color: #f59e0b;" onclick="window.confirmarCrearCompetitivo()">Crear e ir a Lista de Espera</button>
@@ -886,24 +892,29 @@
                 <input type="hidden" id="unirse-partido-id">
 
                 <div style="text-align: left; display: flex; flex-direction: column; gap: 10px;">
-                    <div>
-                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Tu Nombre:</label>
-                        <input type="text" id="unirse-nombre" class="input-form" placeholder="Ej: Tu nombre..." style="margin-top: 4px;">
+                    <div style="background: #242c36; padding: 10px; border-radius: 6px; border: 1px solid #44505d;">
+                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Tu Nombre (Rival 1):</label>
+                        <input type="text" id="unirse-nombre" class="input-form" disabled style="background-color: #171d24; color: #10b981; margin-top: 4px; font-weight: bold;">
                     </div>
                     <div>
                         <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Tu Pareja:</label>
                         <select id="unirse-pareja" class="input-form" style="margin-top: 4px;" onchange="window.toggleAmigoInput('unirse-pareja', 'div-amigo-unirse')">
-                            <option value="random">🎲 Pareja Random</option>
-                            <option value="amigo">🤝 Invitar a un amigo</option>
+                            <option value="random" selected>🎲 Pareja Random (Me anoto solo)</option>
+                            <option value="amigo">🤝 Invitar a un amigo de mi lista</option>
+                            <option value="externo">➕ Anotar amigo externo</option>
                         </select>
                     </div>
                     <div id="div-amigo-unirse" style="display: none;">
-                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Nombre de tu compañero/a:</label>
+                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Selecciona tu compañero/a:</label>
                         <select id="unirse-nombre-amigo" class="input-form" style="margin-top: 4px;"><option value="" disabled selected>No tienes amigos agregados</option></select>
+                    </div>
+                    <div id="div-externo-unirse" style="display: none;">
+                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Nombre del amigo externo:</label>
+                        <input type="text" id="unirse-nombre-externo" class="input-form" placeholder="Ej: Juan" style="margin-top: 4px;">
                     </div>
                 </div>
 
-                <button class="btn-modal btn-guardar" style="margin-top: 20px; background-color: #10b981;" onclick="window.confirmarUnirsePartido()">Confirmar y Crear Turno</button>
+                <button class="btn-modal btn-guardar" style="margin-top: 20px; background-color: #10b981;" onclick="window.confirmarUnirsePartido()">Confirmar y Unirme</button>
                 <button class="btn-modal btn-cerrar" style="margin-top: 10px;" onclick="window.cerrarModalUnirseDetalle()">Cancelar</button>
             </div>
         </div>
@@ -932,17 +943,35 @@
                 <input type="hidden" id="inscripcion-torneo-id">
 
                 <div style="text-align: left; display: flex; flex-direction: column; gap: 10px;">
-                    <div>
-                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Nombre del Jugador / Pareja:</label>
-                        <input type="text" id="inscripcion-nombre" class="input-form" placeholder="Ej: Juan Perez y Luis Gomez" style="margin-top: 4px;">
+                    <div style="background: #242c36; padding: 10px; border-radius: 6px; border: 1px solid #44505d;">
+                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Jugador 1 (Tú):</label>
+                        <input type="text" id="inscripcion-nombre-propio" class="input-form" disabled style="background-color: #171d24; color: #10b981; margin-top: 4px; font-weight: bold;">
                     </div>
+                    
+                    <div>
+                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Jugador 2 (Tu Pareja):</label>
+                        <select id="inscripcion-tipo-pareja" class="input-form" style="margin-top: 4px;" onchange="window.toggleAmigoInput('inscripcion-tipo-pareja', 'div-amigo-torneo')">
+                            <option value="amigo" selected>🤝 Invitar a un amigo de mi lista</option>
+                            <option value="externo">➕ Anotar amigo externo</option>
+                        </select>
+                    </div>
+
+                    <div id="div-amigo-torneo" style="display: block;">
+                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Selecciona a tu amigo:</label>
+                        <select id="inscripcion-nombre-amigo" class="input-form" style="margin-top: 4px;"><option value="" disabled selected>No tienes amigos agregados</option></select>
+                    </div>
+
+                    <div id="div-externo-torneo" style="display: none;">
+                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Nombre del amigo externo:</label>
+                        <input type="text" id="inscripcion-nombre-externo" class="input-form" placeholder="Ej: Luis Gomez" style="margin-top: 4px;">
+                    </div>
+
                 </div>
 
-              <button class="btn-modal btn-guardar" style="margin-top: 20px; background-color: #10b981;" onclick="window.confirmarInscripcionTorneo()">Confirmar Inscripción</button>
+                <button class="btn-modal btn-guardar" style="margin-top: 20px; background-color: #10b981;" onclick="window.confirmarInscripcionTorneo()">Confirmar Inscripción</button>
                 <button class="btn-modal btn-cerrar" style="margin-top: 10px;" onclick="window.cerrarModalInscripcionTorneo()">Cancelar</button>
             </div>
         </div>
-
         <div id="modal-perfil-jugador" class="modal-overlay" style="z-index: 2000; background: rgba(23, 29, 36, 0.95);">
             <div class="modal-content" style="max-width: 400px; border-color: #3b82f6;">
                 <h3 style="margin: 0; color: #3b82f6; border-bottom: 1px solid #44505d; padding-bottom: 10px;">Completa tu Perfil</h3>
