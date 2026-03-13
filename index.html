@@ -2220,13 +2220,14 @@
         }
         
  // --- CIRCUITO COMPETITIVO (Global) ---
-        window.cambiarSubVistaCompetitiva = function(v) {
+       window.cambiarSubVistaCompetitiva = function(v) {
             document.getElementById('subvista-ranking').style.display = v === 'ranking' ? 'block' : 'none';
-            document.getElementById('subvista-torneos').style.display = v === 'torneos' ? 'block' : 'none';
-            document.getElementById('btn-sub-ranking').style.backgroundColor = v==='ranking'?'#3b82f6':'#242c36';
-            document.getElementById('btn-sub-torneos').style.backgroundColor = v==='torneos'?'#8b5cf6':'#242c36';
+            document.getElementById('subvista-partidos').style.display = v === 'partidos' ? 'block' : 'none';
+            
+            document.getElementById('btn-sub-ranking').classList.toggle('activo', v === 'ranking');
+            document.getElementById('btn-sub-partidos').classList.toggle('activo', v === 'partidos');
         };
-
+        
         window.renderizarTorneosPublicos = function() {
             const div = document.getElementById('lista-torneos'); if(!div) return; div.innerHTML = '';
             
