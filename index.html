@@ -767,19 +767,22 @@
         </div>
         
         <div id="pantalla-ranking" class="vista-club" style="display: none; max-width: 600px;">
-            <h2 style="margin: 0; margin-bottom: 15px;">🏆 Circuito Competitivo</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin: 0;">🏆 Circuito</h2>
+                <div class="icon-actions">
+                    <button onclick="window.abrirModalTorneosPublicos()" title="Torneos Disponibles">🏆</button>
+                    <button onclick="window.abrirModalAmigos()" title="Mis Amigos">👥
+                        <span id="btn-amigos-badge" style="font-size: 0.5em; position: absolute; top: -5px; right: -8px; background: #f59e0b; color: #171d24; border-radius: 50%; padding: 2px 5px; font-weight: bold;"></span>
+                    </button>
+                </div>
+            </div>
             
-            <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
-                <button class="btn-modal btn-guardar" style="flex: 1; min-width: 80px; padding: 10px; background-color: #f59e0b;" onclick="window.abrirModalJugarCompetitivo()">🔥 Partidos</button>
-                <button id="btn-sub-ranking" class="btn-modal btn-guardar" style="flex: 1; min-width: 80px; padding: 10px; background-color: #3b82f6; border: none;" onclick="window.cambiarSubVistaCompetitiva('ranking')">📊 Ranking</button>
-                <button id="btn-sub-torneos" class="btn-modal btn-guardar" style="flex: 1; min-width: 80px; padding: 10px; background-color: #242c36; border: 1px solid #44505d;" onclick="window.cambiarSubVistaCompetitiva('torneos')">🏆 Torneos</button>
-                <button class="btn-modal btn-guardar" style="flex: 1; min-width: 80px; padding: 10px; background-color: #8b5cf6; border: none;" onclick="window.abrirModalAmigos()">👥 Amigos <span id="btn-amigos-badge" style="font-weight: bold; color: #fbbf24;"></span></button>
+            <div class="toggle-container">
+                <button id="btn-sub-ranking" class="toggle-btn-elegante activo" onclick="window.cambiarSubVistaCompetitiva('ranking')">Ranking</button>
+                <button id="btn-sub-partidos" class="toggle-btn-elegante" onclick="window.cambiarSubVistaCompetitiva('partidos')">Partidos</button>
             </div>
             
             <div id="subvista-ranking">
-                <div style="margin-bottom: 10px; border-top: 1px solid #2c3540; padding-top: 15px;">
-                    <span style="font-size: 0.9em; color: #9ca3af; font-weight: bold;">Tabla General de Posiciones (Automática)</span>
-                </div>
                 <div class="scroll-interno" style="background: #242c36; border-radius: 8px; border: 1px solid #2c3540; padding: 5px;">
                     <table style="width: 100%; text-align: left;">
                         <thead>
@@ -797,15 +800,24 @@
                 </div>
             </div>
 
-            <div id="subvista-torneos" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-top: 1px solid #2c3540; padding-top: 15px;">
-                    <span style="font-size: 0.9em; color: #9ca3af; font-weight: bold;">Torneos Disponibles</span>
-                </div>
-                <div id="lista-torneos" class="scroll-interno" style="background: #242c36; border-radius: 8px; border: 1px solid #2c3540; padding: 5px; text-align: center; color: #9ca3af; min-height: 100px; display: flex; flex-direction: column; gap: 10px;">
+            <div id="subvista-partidos" style="display: none; text-align: center;">
+                <div style="background: #242c36; border-radius: 8px; border: 1px solid #2c3540; padding: 20px; text-align: center;">
+                    <p style="color: #d1d5db; font-size: 0.95em; margin-top: 0; margin-bottom: 20px;">Juega partidos contra otros y suma puntos para escalar en el Ranking General.</p>
+                    <button class="btn-modal btn-guardar" style="width: 100%; padding: 12px; background-color: #3b82f6; font-size: 1.1em; border-radius: 8px;" onclick="window.abrirModalJugarCompetitivo()">🔥 Abrir Buscador de Partidos</button>
                 </div>
             </div>
         </div>
 
+        <div id="modal-torneos-publicos" class="modal-overlay" style="z-index: 1450;">
+            <div class="modal-content scroll-interno" style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
+                <h3 style="margin: 0; border-bottom: 1px solid #44505d; padding-bottom: 10px; color: #f59e0b;">🏆 Torneos Disponibles</h3>
+                <div id="lista-torneos" style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px; text-align: center;">
+                    <div style="padding: 20px; color: #9ca3af;">Cargando torneos...</div>
+                </div>
+                <button class="btn-modal btn-cerrar" style="margin-top: 20px;" onclick="window.cerrarModalTorneosPublicos()">Cerrar</button>
+            </div>
+        </div>
+        
       <div id="modal-jugar-competitivo" class="modal-overlay" style="z-index: 1250;">
             <div class="modal-content" style="max-width: 480px; padding: 20px;">
                 <div style="display: flex; gap: 4px; margin-bottom: 15px; border-bottom: 2px solid #2c3540; padding-bottom: 15px; flex-wrap: wrap;">
