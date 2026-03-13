@@ -2231,6 +2231,14 @@
             
             document.getElementById('btn-sub-ranking').classList.toggle('activo', v === 'ranking');
             document.getElementById('btn-sub-partidos').classList.toggle('activo', v === 'partidos');
+
+            // Cargar datos al abrir la pestaña de partidos
+            if(v === 'partidos') {
+                document.getElementById('comp-nombre-jugador').value = window.perfilJugador?.nombreCompleto || 'Jugador Anónimo';
+                document.getElementById('comp-pareja').value = 'random';
+                window.toggleAmigoInput('comp-pareja', 'div-amigo-comp');
+                window.llenarHorariosDisponiblesCompetitivo();
+            }
         };
         
         window.renderizarTorneosPublicos = function() {
