@@ -2842,11 +2842,12 @@
                 });
             }
 
-            // Matchmaking y Ranking son públicos (para todos)
+           // Matchmaking y Ranking son públicos (para todos)
             onSnapshot(collection(db, "matchmaking"), (s) => { 
                 matchmakingGlobal=[]; s.forEach(d=>matchmakingGlobal.push({id:d.id,...d.data()}));
-                if (document.getElementById('tab-unirse-partido') && document.getElementById('tab-unirse-partido').style.display === 'block') renderizarPartidosAbiertos();
-                if (document.getElementById('tab-resultados-partido') && document.getElementById('tab-resultados-partido').style.display === 'block') renderizarPartidosResultados();
+                if(typeof window.renderizarPartidosAbiertos === 'function') window.renderizarPartidosAbiertos();
+                if(typeof window.renderizarPartidosResultados === 'function') window.renderizarPartidosResultados();
+                if(typeof window.renderizarHistorialCompetitivo === 'function') window.renderizarHistorialCompetitivo();
             });
             
             onSnapshot(collection(db, "ranking"), (s) => { 
