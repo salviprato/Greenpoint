@@ -2451,6 +2451,9 @@
                 if(!j2) { alert("Escribe el nombre de tu pareja externa."); return; }
             }
 
+            // Comprobar si se invitó a un amigo para ponerlo en pausa
+            let estadoInicial = (tipoPareja === 'amigo') ? 'Esperando Confirmacion Amigo' : 'Buscando Rival';
+
             await addDoc(collection(db, "matchmaking"), { 
                 fechaDeseada: fechaSeleccionada, 
                 j1: miNombre, 
@@ -2460,11 +2463,15 @@
                 clubSeleccionado: document.getElementById('comp-club').value, 
                 tipoCancha: document.getElementById('comp-cancha').value, 
                 horaDeseada: document.getElementById('comp-hora').value, 
-                estado: 'Buscando Rival',
+                estado: estadoInicial,
                 fechaCreacion: serverTimestamp()
             });
             
-            alert("Partido creado exitosamente. Ya está en la lista de espera.");
+            if (estadoInicial === 'Esperando Confirmacion Amigo') {
+                alert("Partido creado. Esperando que tu amigo acepte la invitación para buscar rivales.");
+            } else {
+                alert("Partido creado exitosamente. Ya está buscando rivales.");
+            }
             window.toggleAcordeon('ac-comp-crear'); // Cierra Crear
             window.toggleAcordeon('ac-comp-unirse'); // Abre Unirse
         };
