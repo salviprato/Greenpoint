@@ -2525,39 +2525,52 @@
             window.cerrarModalUnirseDetalle(); 
         };
         
-        window.renderizarPartidosResultados = function() {
+      window.renderizarPartidosResultados = function() {
             const div = document.getElementById('lista-partidos-resultados'); if(!div) return; div.innerHTML = '';
-            matchmakingGlobal.filter(m=>m.estado==='Partido Confirmado').forEach(m => { 
-                div.innerHTML += `<div style="border:1px solid #44505d; padding:10px; margin-bottom:5px; border-radius:6px; background:#1e252d;">
-                                    <div style="color:#d1d5db; font-size:0.9em; text-align:center; margin-bottom:8px;">
-                                        <span style="color:#3b82f6;">Eq 1:</span> ${m.creadorPrincipal} y ${m.creadorCompañero} <br><strong style="color:#f59e0b;">VS</strong><br>
-                                        <span style="color:#ef4444;">Eq 2:</span> ${m.rivalPrincipal}
+            let confirmados = matchmakingGlobal.filter(m=>m.estado==='Partido Confirmado');
+            if(confirmados.length === 0) { div.innerHTML = '<div style="color:#9ca3af; padding:10px; text-align:center;">No hay partidos pendientes de resultado.</div>'; return; }
+
+            confirmados.forEach(m => { 
+                div.innerHTML += `<div style="border:1px solid #44505d; padding:12px; margin-bottom:8px; border-radius:8px; background:#1e252d;">
+                                    <div style="color:#d1d5db; font-size:1em; text-align:center; margin-bottom:10px;">
+                                        <span style="color:#3b82f6;">Eq 1:</span> ${m.j1} y ${m.j2} <br><strong style="color:#f59e0b; margin: 5px 0; display:block;">VS</strong>
+                                        <span style="color:#ef4444;">Eq 2:</span> ${m.j3} y ${m.j4}
                                     </div>
-                                    <button class="btn-modal btn-guardar" style="width:100%; padding:6px; font-size:0.85em; background-color:#10b981;" onclick="window.abrirModalResultado('${m.id}', '${m.creadorPrincipal}', '${m.rivalPrincipal}')">Cargar Ganador</button>
+                                    <div style="text-align:center; margin-bottom:12px;">
+                                        <small style="background:#8b5cf6; padding:4px 8px; border-radius:4px; color:white; font-weight:bold;">📌 Turno Reservado: ${m.fechaDeseada} ${m.horaDeseada}hs</small>
+                                    </div>
+                                    <button class="btn-modal btn-guardar" style="width:100%; padding:8px; font-size:0.9em; background-color:#10b981;" onclick="window.abrirModalResultado('${m.id}', '${m.j1}', '${m.j3}')">Cargar Equipo Ganador</button>
                                   </div>`; 
             });
         };
 
-        window.abrirModalResultado = function(id, eq1, eq2) { 
+        window.abrirModalResultado = function(id, capitan1, capitan2) { 
             document.getElementById('resultado-partido-id').value = id; 
-            document.getElementById('btn-ganador-eq1').innerText = `Ganó: ${eq1.split('/')[0]}`; 
-            document.getElementById('btn-ganador-eq2').innerText = `Ganó: ${eq2.split('/')[0]}`; 
+            document.getElementById('btn-ganador-eq1').innerText = `Ganó Eq 1: (${capitan1.split(' ')[0]}...)`; 
+            document.getElementById('btn-ganador-eq2').innerText = `Ganó Eq 2: (${capitan2.split(' ')[0]}...)`; 
             document.getElementById('modal-cargar-resultado').style.display = 'flex'; 
         };
 
         window.cerrarModalResultado = function() { document.getElementById('modal-cargar-resultado').style.display = 'none'; };
-        window.confirmarResultado = async function(g) { await updateDoc(doc(db, "matchmaking", document.getElementById('resultado-partido-id').value), { estado: 'Finalizado', ganador: g }); window.cerrarModalResultado(); };
+        
+        window.confirmarResultado = async function(g) { 
+            await updateDoc(doc(db, "matchmaking", document.getElementById('resultado-partido-id').value), { estado: 'Finalizado', ganador: g }); 
+            window.cerrarModalResultado(); 
+        };
         
         window.renderizarHistorialCompetitivo = function() { 
-            const div = document.getElementById('lista-partidos-historial'); if(div) div.innerHTML = '';
-            matchmakingGlobal.filter(m=>m.estado==='Finalizado').forEach(m => {
-                let txtGanador = m.ganador === 1 ? m.creadorPrincipal : m.rivalPrincipal;
-                div.innerHTML += `<div style="border-bottom:1px solid #2c3540; padding:8px 0; color:#d1d5db; font-size:0.85em;">
-                                    📅 ${m.fechaDeseada} - Ganador: <strong style="color:#10b981;">${txtGanador}</strong>
+            const div = document.getElementById('lista-partidos-historial'); if(!div) return; div.innerHTML = '';
+            let finalizados = matchmakingGlobal.filter(m=>m.estado==='Finalizado');
+            if(finalizados.length === 0) { div.innerHTML = '<div style="color:#9ca3af; padding:10px; text-align:center;">Aún no hay partidos finalizados en el historial.</div>'; return; }
+
+            finalizados.forEach(m => {
+                let txtGanador = m.ganador === 1 ? `${m.j1} y ${m.j2}` : `${m.j3} y ${m.j4}`;
+                div.innerHTML += `<div style="border-bottom:1px solid #2c3540; padding:10px 0; color:#d1d5db; font-size:0.9em;">
+                                    📅 ${m.fechaDeseada} - Ganador:<br><strong style="color:#10b981;">🏆 ${txtGanador}</strong>
                                   </div>`;
             });
         };
-
+        
         window.renderizarRanking = function() {
             const tb = document.getElementById('lista-ranking'); if(!tb) return; tb.innerHTML = '';
             if (!rankingGlobal || rankingGlobal.length === 0) {
