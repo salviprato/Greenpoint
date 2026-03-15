@@ -2225,7 +2225,7 @@
         }
         
  // --- CIRCUITO COMPETITIVO (Global) ---
-       window.cambiarSubVistaCompetitiva = function(v) {
+      window.cambiarSubVistaCompetitiva = function(v) {
             document.getElementById('subvista-ranking').style.display = v === 'ranking' ? 'block' : 'none';
             document.getElementById('subvista-partidos').style.display = v === 'partidos' ? 'block' : 'none';
             
@@ -2237,7 +2237,23 @@
                 document.getElementById('comp-nombre-jugador').value = window.perfilJugador?.nombreCompleto || 'Jugador Anónimo';
                 document.getElementById('comp-pareja').value = 'random';
                 window.toggleAmigoInput('comp-pareja', 'div-amigo-comp');
-                window.llenarHorariosDisponiblesCompetitivo();
+                window.cargarClubesDisponibles(); 
+            }
+        };
+
+        window.cargarClubesDisponibles = async function() {
+            const sel = document.getElementById('comp-club');
+            sel.innerHTML = '<option value="" disabled selected>Cargando clubes...</option>';
+            try {
+                // Buscamos todas las configuraciones de clubes existentes
+                const snap = await getDocs(collection(db, "configuracion"));
+                sel.innerHTML = '<option value="" disabled selected>Elige un club...</option>';
+                snap.forEach(doc => { 
+                    sel.innerHTML += `<option value="${doc.id}">${doc.id.toUpperCase()}</option>`; 
+                });
+                if(snap.empty) sel.innerHTML = '<option value="Orbit">ORBIT</option>';
+            } catch(e) { 
+                sel.innerHTML = '<option value="Orbit">ORBIT</option>'; 
             }
         };
         
