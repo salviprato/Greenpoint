@@ -2446,11 +2446,12 @@
             if (tipoPareja === 'amigo') {
                 j2 = document.getElementById('comp-nombre-amigo').value;
                 if(!j2) { alert("Selecciona un amigo de tu lista."); return; }
-            } else if (tipoPareja === 'externo') {
+           } else if (tipoPareja === 'externo') {
                 j2 = document.getElementById('comp-nombre-externo').value.trim();
                 if(!j2) { alert("Escribe el nombre de tu pareja externa."); return; }
+                j2 += " (Ext)"; // MARCAMOS AL EXTERNO
             }
-
+           
             // Comprobar si se invitó a un amigo para ponerlo en pausa
             let estadoInicial = (tipoPareja === 'amigo') ? 'Esperando Confirmacion Amigo' : 'Buscando Rival';
 
