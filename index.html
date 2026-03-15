@@ -2698,27 +2698,45 @@
         
       window.renderizarPartidosResultados = function() {
             const div = document.getElementById('lista-partidos-resultados'); if(!div) return; div.innerHTML = '';
-            let confirmados = matchmakingGlobal.filter(m=>m.estado==='Partido Confirmado');
+            let confirmados = matchmakingGlobal.filter(m=>m.estado==='Partido Confirmado' || m.estado==='Conflicto de Resultado');
             if(confirmados.length === 0) { div.innerHTML = '<div style="color:#9ca3af; padding:10px; text-align:center;">No hay partidos pendientes de resultado.</div>'; return; }
 
+            let miNombre = window.perfilJugador?.nombreCompleto || '';
+
             confirmados.forEach(m => { 
-                div.innerHTML += `<div style="border:1px solid #44505d; padding:12px; margin-bottom:8px; border-radius:8px; background:#1e252d;">
+                let soyEq1 = (m.j1 === miNombre || m.j2 === miNombre);
+                let soyEq2 = (m.j3 === miNombre || m.j4 === miNombre);
+                let miVoto = soyEq1 ? m.votoEq1 : m.votoEq2;
+
+                let htmlBoton = '';
+                if (m.estado === 'Conflicto de Resultado') {
+                    htmlBoton = `<div style="text-align:center; color:#ef4444; font-size:0.85em; margin-top:10px; font-weight:bold;">⚠️ Conflicto: Los equipos subieron resultados distintos.</div>`;
+                } else if (miVoto) {
+                    htmlBoton = `<div style="text-align:center; color:#f59e0b; font-size:0.85em; margin-top:10px; font-weight:bold;">⏳ Esperando confirmación del equipo rival...</div>`;
+                } else if (soyEq1 || soyEq2) {
+                    htmlBoton = `<button class="btn-modal btn-guardar" style="width:100%; padding:8px; font-size:0.9em; background-color:#10b981;" onclick="window.abrirModalResultado('${m.id}')">Cargar Equipo Ganador</button>`;
+                } else {
+                    htmlBoton = `<div style="text-align:center; color:#9ca3af; font-size:0.85em; margin-top:10px;">(Solo los jugadores pueden subir el resultado)</div>`;
+                }
+
+                div.innerHTML += `<div style="border:1px solid ${m.estado==='Conflicto de Resultado'?'#ef4444':'#44505d'}; padding:12px; margin-bottom:8px; border-radius:8px; background:#1e252d;">
                                     <div style="color:#d1d5db; font-size:1em; text-align:center; margin-bottom:10px;">
                                         <span style="color:#3b82f6;">Eq 1:</span> ${m.j1} y ${m.j2} <br><strong style="color:#f59e0b; margin: 5px 0; display:block;">VS</strong>
                                         <span style="color:#ef4444;">Eq 2:</span> ${m.j3} y ${m.j4}
                                     </div>
                                     <div style="text-align:center; margin-bottom:12px;">
-                                        <small style="background:#8b5cf6; padding:4px 8px; border-radius:4px; color:white; font-weight:bold;">📌 Turno Reservado: ${m.fechaDeseada} ${m.horaDeseada}hs</small>
+                                        <small style="background:#8b5cf6; padding:4px 8px; border-radius:4px; color:white; font-weight:bold;">📌 ${m.fechaDeseada} ${m.horaDeseada}hs</small>
                                     </div>
-                                    <button class="btn-modal btn-guardar" style="width:100%; padding:8px; font-size:0.9em; background-color:#10b981;" onclick="window.abrirModalResultado('${m.id}', '${m.j1}', '${m.j3}')">Cargar Equipo Ganador</button>
+                                    ${htmlBoton}
                                   </div>`; 
             });
         };
 
-        window.abrirModalResultado = function(id, capitan1, capitan2) { 
+        window.abrirModalResultado = function(id) { 
+            const m = matchmakingGlobal.find(x => x.id === id); if(!m) return;
             document.getElementById('resultado-partido-id').value = id; 
-            document.getElementById('btn-ganador-eq1').innerText = `Ganó Eq 1: (${capitan1.split(' ')[0]}...)`; 
-            document.getElementById('btn-ganador-eq2').innerText = `Ganó Eq 2: (${capitan2.split(' ')[0]}...)`; 
+            document.getElementById('btn-ganador-eq1').innerText = `Ganó Eq 1: (${m.j1.split(' ')[0]} y ${m.j2.split(' ')[0]})`; 
+            document.getElementById('btn-ganador-eq2').innerText = `Ganó Eq 2: (${m.j3.split(' ')[0]} y ${m.j4.split(' ')[0]})`; 
             document.getElementById('modal-cargar-resultado').style.display = 'flex'; 
         };
 
@@ -2726,15 +2744,112 @@
         
         window.confirmarResultado = async function(g) { 
             const idPartido = document.getElementById('resultado-partido-id').value;
-            const m = matchmakingGlobal.find(x => x.id === idPartido);
-            if(!m) return;
+            const m = matchmakingGlobal.find(x => x.id === idPartido); if(!m) return;
 
-            // 1. Obtener puntos actuales de cada jugador
+            let miNombre = window.perfilJugador?.nombreCompleto || '';
+            let soyEq1 = (m.j1 === miNombre || m.j2 === miNombre);
+            let soyEq2 = (m.j3 === miNombre || m.j4 === miNombre);
+
+            if(!soyEq1 && !soyEq2) { alert("No eres parte de este partido."); return; }
+
+            // Guardar el voto de quien tocó el botón
+            let actualizacion = {};
+            if (soyEq1) actualizacion.votoEq1 = g;
+            if (soyEq2) actualizacion.votoEq2 = g;
+
+            // Predecir cómo quedan los votos combinados
+            let votoFinalEq1 = soyEq1 ? g : m.votoEq1;
+            let votoFinalEq2 = soyEq2 ? g : m.votoEq2;
+
+            if (votoFinalEq1 && votoFinalEq2) {
+                if (votoFinalEq1 !== votoFinalEq2) {
+                    alert("Los resultados reportados por los equipos NO COINCIDEN. El partido quedó en conflicto.");
+                    actualizacion.estado = 'Conflicto de Resultado';
+                    await updateDoc(doc(db, "matchmaking", idPartido), actualizacion);
+                    window.cerrarModalResultado();
+                } else {
+                    // AMBOS COINCIDEN: Procesar puntos de Ranking ELO
+                    await procesarPuntosRanking(m, g);
+                }
+            } else {
+                // Falta que el rival confirme
+                await updateDoc(doc(db, "matchmaking", idPartido), actualizacion);
+                window.cerrarModalResultado();
+                alert("Tu resultado fue enviado. Esperando que el equipo rival confirme lo mismo.");
+            }
+        };
+
+        async function procesarPuntosRanking(m, g) {
+            document.getElementById('btn-ganador-eq1').innerText = "Calculando ranking...";
+            document.getElementById('btn-ganador-eq2').innerText = "Calculando ranking...";
+
+            // 1. Lector de Puntos (Externos = 0)
             const getPts = (nombre) => {
+                if(nombre.includes('(Ext)')) return 0;
                 const p = rankingGlobal.find(r => r.nombre === nombre);
                 return p ? (p.puntos || 0) : 0;
             };
 
+            let ptsJ1 = getPts(m.j1); let ptsJ2 = getPts(m.j2);
+            let ptsJ3 = getPts(m.j3); let ptsJ4 = getPts(m.j4);
+
+            // 2. Sumatoria (Si hay un externo, se duplica el puntaje del que sí está en el sistema)
+            let sumEq1 = 0;
+            if (m.j1.includes('(Ext)')) sumEq1 = ptsJ2 * 2;
+            else if (m.j2.includes('(Ext)')) sumEq1 = ptsJ1 * 2;
+            else sumEq1 = ptsJ1 + ptsJ2;
+
+            let sumEq2 = 0;
+            if (m.j3.includes('(Ext)')) sumEq2 = ptsJ4 * 2;
+            else if (m.j4.includes('(Ext)')) sumEq2 = ptsJ3 * 2;
+            else sumEq2 = ptsJ3 + ptsJ4;
+
+            // 3. Diferencia dividida por 10
+            let diferencia = Math.abs(sumEq1 - sumEq2);
+            let multiplicador = Math.floor(diferencia / 10);
+
+            // 4. Lógica ELO (15 base ganar, -5 base perder)
+            let ptsGanador = 15;
+            let ptsPerdedor = -5;
+            let eq1Gana = (g === 1);
+            
+            // Batacazos
+            if (eq1Gana && sumEq2 > sumEq1) { ptsGanador += multiplicador; ptsPerdedor -= multiplicador; }
+            if (!eq1Gana && sumEq1 > sumEq2) { ptsGanador += multiplicador; ptsPerdedor -= multiplicador; }
+
+            let cambioJ1 = eq1Gana ? ptsGanador : ptsPerdedor;
+            let cambioJ2 = eq1Gana ? ptsGanador : ptsPerdedor;
+            let cambioJ3 = !eq1Gana ? ptsGanador : ptsPerdedor;
+            let cambioJ4 = !eq1Gana ? ptsGanador : ptsPerdedor;
+
+            // 5. Aplicar a BD
+            const actualizarJugador = async (nombre, cambioPts) => {
+                if(!nombre || nombre === 'Libre' || nombre.includes('(Ext)')) return; // Externos NO entran al ranking
+                const p = rankingGlobal.find(r => r.nombre === nombre);
+                if (p) {
+                    let nuevosPuntos = (p.puntos || 0) + cambioPts;
+                    if (nuevosPuntos < 0) nuevosPuntos = 0; // Evitamos negativos
+                    await updateDoc(doc(db, "ranking", p.id), { puntos: nuevosPuntos, partidosJugados: (p.partidosJugados || 0) + 1 });
+                } else {
+                    let nuevosPuntos = cambioPts < 0 ? 0 : cambioPts;
+                    await addDoc(collection(db, "ranking"), { nombre: nombre, puntos: nuevosPuntos, partidosJugados: 1 });
+                }
+            };
+
+            try {
+                await Promise.all([
+                    actualizarJugador(m.j1, cambioJ1), actualizarJugador(m.j2, cambioJ2),
+                    actualizarJugador(m.j3, cambioJ3), actualizarJugador(m.j4, cambioJ4)
+                ]);
+                
+                await updateDoc(doc(db, "matchmaking", m.id), { estado: 'Finalizado', ganador: g }); 
+                window.cerrarModalResultado(); 
+                alert("¡Resultados confirmados y ranking actualizado!");
+            } catch(e) {
+                console.error(e); alert("Error al subir puntos."); window.cerrarModalResultado();
+            }
+        }
+        
             let ptsJ1 = getPts(m.j1); let ptsJ2 = getPts(m.j2);
             let ptsJ3 = getPts(m.j3); let ptsJ4 = getPts(m.j4);
 
