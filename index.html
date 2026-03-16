@@ -2052,46 +2052,6 @@ window.cerrarModalUnirseDetalle = function() {
             window.cerrarModalUnirseDetalle(); 
         };
 
-        window.renderizarPartidosAbiertos = function() {
-            const div = document.getElementById('lista-partidos-abiertos'); if(!div) return; div.innerHTML = '';
-            let hoy = obtenerFechaHoy(); let ahoraH = new Date().getHours().toString().padStart(2, '0') + ":" + new Date().getMinutes().toString().padStart(2, '0');
-            let miNombre = window.perfilJugador?.nombreCompleto || '';
-            let html = '';
-
-            let invitaciones = matchmakingGlobal.filter(m => m.estado.includes('Esperando Confirmacion') && (m.j2 === miNombre || m.j3 === miNombre || m.j4 === miNombre) && m.fechaDeseada >= hoy);
-            if(invitaciones.length > 0) {
-                html += '<div style="margin-bottom: 15px;"><strong style="color:#8b5cf6;">🔔 Tienes invitaciones de pareja:</strong></div>';
-                invitaciones.forEach(m => {
-                    let quienInvito = (m.j3 === miNombre || m.j4 === miNombre) ? m.j3 : m.j1; 
-                    html += `<div style="border:1px solid #8b5cf6; padding:12px; margin-bottom:12px; border-radius:8px; background:#2e1065;"><div style="color:#d1d5db; margin-bottom: 8px;">Alguien te invitó a jugar en <strong>${m.clubSeleccionado}</strong>.</div><div style="color:#9ca3af; font-size:0.85em; margin-bottom: 10px;">📅 ${m.fechaDeseada} | ⌚ ${m.horaDeseada} hs | Cancha ${m.tipoCancha}</div><div style="display:flex; gap:10px;"><button class="btn-modal btn-guardar" style="flex:1; padding:8px; font-size:0.85em;" onclick="window.responderInvitacion('${m.id}', true)">✅ Aceptar</button><button class="btn-modal btn-eliminar" style="flex:1; padding:8px; font-size:0.85em;" onclick="window.responderInvitacion('${m.id}', false)">❌ Rechazar</button></div></div>`;
-                });
-            }
-
-            let abiertos = matchmakingGlobal.filter(m => {
-                if (m.estado !== 'Buscando Rival') return false; 
-                if (m.fechaDeseada < hoy) return false; 
-                if (m.fechaDeseada === hoy && m.horaDeseada <= ahoraH) return false; 
-                if (m.j1 === miNombre || m.j2 === miNombre || m.j3 === miNombre || m.j4 === miNombre) return false; 
-                let cupos = 0; if(m.j2==='Libre')cupos++; if(m.j3==='Libre')cupos++; if(m.j4==='Libre')cupos++;
-                if (cupos === 0) return false; 
-                return true;
-            });
-
-            if(abiertos.length === 0 && invitaciones.length === 0) { 
-                html += '<div style="color:#9ca3af; padding:10px; text-align:center;">No hay partidos disponibles que se ajusten a ti. ¡Anímate a crear uno!</div>'; 
-            } else if (abiertos.length > 0) {
-                html += '<div style="margin-bottom: 10px;"><strong style="color:#10b981;">🎾 Partidos buscando jugadores:</strong></div>';
-                abiertos.forEach(m => { 
-                    let cuposLibres = 0; if(m.j2==='Libre')cuposLibres++; if(m.j3==='Libre')cuposLibres++; if(m.j4==='Libre')cuposLibres++;
-                    let dJ1 = m.j1 !== 'Libre' ? '👤 Oculto' : 'Libre'; let dJ2 = m.j2 !== 'Libre' ? '👤 Oculto' : 'Libre';
-                    let dJ3 = m.j3 !== 'Libre' ? '👤 Oculto' : 'Libre'; let dJ4 = m.j4 !== 'Libre' ? '👤 Oculto' : 'Libre';
-
-                    html += `<div style="border:1px solid #44505d; padding:12px; margin-bottom:8px; border-radius:8px; background:#1e252d;"><div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 1.05em;"><strong style="color:#3b82f6;">${dJ1} / ${dJ2}</strong><span style="color:#f59e0b; font-weight:bold; margin: 0 10px;">VS</span><strong style="color:#ef4444;">${dJ3} / ${dJ4}</strong></div><div style="color:#d1d5db; font-size:0.9em; margin-bottom:4px;">📍 ${m.clubSeleccionado}</div><div style="color:#9ca3af; font-size:0.85em;">📅 ${m.fechaDeseada} | ⌚ ${m.horaDeseada} hs | Cancha ${m.tipoCancha}</div><div style="color:#10b981; font-size:0.85em; margin-top:4px;">🎟️ Lugares vacantes: ${cuposLibres}</div><button class="btn-modal btn-guardar" style="width:100%; margin-top:10px; padding:8px; font-size:0.9em; background-color:#10b981;" onclick="window.abrirModalUnirseDetalle('${m.id}')">Unirme a este partido</button></div>`; 
-                });
-            }
-            div.innerHTML = html;
-        };
-
         window.responderInvitacion = async function(id, aceptada) {
             const m = matchmakingGlobal.find(x => x.id === id); if(!m) return;
             if(aceptada) { 
