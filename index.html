@@ -2078,15 +2078,19 @@ window.cerrarModalUnirseDetalle = function() {
             });
 
             if (tipoPareja === 'amigo') {
-                nuevosDatos.estado = 'Esperando Confirmacion Amigo Unirse';
-                alert("Te has anotado e invitado a tu amigo. El partido se confirmará cuando acepte.");
-            } else if(nuevosDatos.j1 !== 'Libre' && nuevosDatos.j2 !== 'Libre' && nuevosDatos.j3 !== 'Libre' && nuevosDatos.j4 !== 'Libre') {
-                nuevosDatos.estado = 'Partido Confirmado';
-                await reservarCanchaParaMatchmaking(nuevosDatos);
-                alert("¡Partido completado! Cancha agendada en el club.");
-            } else { alert("Te anotaste exitosamente. Faltan jugadores para completarlo."); }
+            nuevosDatos.estado = 'Esperando Confirmacion Amigo Unirse';
+            await window.actualizarNombresEnReserva(nuevosDatos); // Actualiza la grilla
+            alert("Te has anotado e invitado a tu amigo. El partido se confirmará cuando acepte.");
+        } else if(nuevosDatos.j1 !== 'Libre' && nuevosDatos.j2 !== 'Libre' && nuevosDatos.j3 !== 'Libre' && nuevosDatos.j4 !== 'Libre') {
+            nuevosDatos.estado = 'Partido Confirmado';
+            await window.actualizarNombresEnReserva(nuevosDatos); // Actualiza la grilla
+            alert("¡Partido completado!");
+        } else { 
+            await window.actualizarNombresEnReserva(nuevosDatos); // Actualiza la grilla
+            alert("Te anotaste exitosamente. Faltan jugadores para completarlo."); 
+        }
 
-            await updateDoc(doc(db, "matchmaking", id), { j2: nuevosDatos.j2, j3: nuevosDatos.j3, j4: nuevosDatos.j4, estado: nuevosDatos.estado }); 
+        await updateDoc(doc(db, "matchmaking", id), { j2: nuevosDatos.j2, j3: nuevosDatos.j3, j4: nuevosDatos.j4, estado: nuevosDatos.estado }); 
             window.cerrarModalUnirseDetalle(); 
         };
 
