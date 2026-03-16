@@ -1954,46 +1954,71 @@
             div.innerHTML = html;
         };
 
-        async function reservarCanchaParaMatchmaking(m) {
-            try {
-                const confDoc = await getDoc(doc(db, "configuracion", m.clubSeleccionado));
-                if(!confDoc.exists()) return;
-                const conf = confDoc.data();
-                
-                let cIn = parseInt(conf.canchasIndoor) || 0;
-                let cOut = parseInt(conf.canchasOutdoor) || 0;
-                let cTenis = parseInt(conf.canchasTenis) || 0;
-                
-                let minC = 1, maxC = 1;
-                if(m.tipoCancha === 'Indoor') { minC = 1; maxC = cIn; }
-                else if(m.tipoCancha === 'Outdoor') { minC = cIn + 1; maxC = cIn + cOut; }
-                else { minC = cIn + cOut + 1; maxC = cIn + cOut + cTenis; }
-                
-                const qRes = query(collection(db, "reservas"), where("clubId", "==", m.clubSeleccionado), where("fecha", "==", m.fechaDeseada));
-                const snap = await getDocs(qRes);
-                let ocupadas = [];
-                snap.forEach(d => {
-                    let r = d.data();
-                    if(r.fechasCanceladas && r.fechasCanceladas.includes(m.fechaDeseada)) return;
-                    let tRes = window.aMinutos(r.hora);
-                    let dRes = r.duracion || (parseInt(conf.duracionTurno) || 90);
-                    let tMatch = window.aMinutos(m.horaDeseada);
-                    if(tMatch >= tRes && tMatch < (tRes + dRes)) ocupadas.push(parseInt(r.cancha));
-                });
-                
-                let canchaFinal = minC;
-                for(let i = minC; i <= maxC; i++) {
-                    if(!ocupadas.includes(i)) { canchaFinal = i; break; }
-                }
-                
-                await addDoc(collection(db, "reservas"), { 
-                    clubId: m.clubSeleccionado, fecha: m.fechaDeseada, hora: m.horaDeseada, cancha: canchaFinal.toString(), 
-                    jugador: `🎮 Liga: ${m.j1}/${m.j2} vs ${m.j3}/${m.j4}`, 
-                    duracion: parseInt(conf.duracionTurno) || 90, fechaRegistro: serverTimestamp(), asistencia: false, fijo: false, fechasCanceladas: [], pagoEfectivo: 0, pagoTransferencia: 0, descuento: 0, consumos: [], tipoEvento: "Normal", esClase: false, profe: null, matchmakingId: m.id
-                });
-            } catch(e) { console.error("Error asignando cancha", e); }
+        // 1. Reserva la cancha (Ahora es global y vinculada a window)
+window.reservarCanchaParaMatchmaking = async function(m) {
+    try {
+        const confDoc = await getDoc(doc(db, "configuracion", m.clubSeleccionado));
+        if(!confDoc.exists()) return;
+        const conf = confDoc.data();
+        
+        let cIn = parseInt(conf.canchasIndoor) || 0;
+        let cOut = parseInt(conf.canchasOutdoor) || 0;
+        let cTenis = parseInt(conf.canchasTenis) || 0;
+        
+        let minC = 1, maxC = 1;
+        if(m.tipoCancha === 'Indoor') { minC = 1; maxC = cIn; }
+        else if(m.tipoCancha === 'Outdoor') { minC = cIn + 1; maxC = cIn + cOut; }
+        else { minC = cIn + cOut + 1; maxC = cIn + cOut + cTenis; }
+        
+        const qRes = query(collection(db, "reservas"), where("clubId", "==", m.clubSeleccionado), where("fecha", "==", m.fechaDeseada));
+        const snap = await getDocs(qRes);
+        let ocupadas = [];
+        snap.forEach(d => {
+            let r = d.data();
+            if(r.fechasCanceladas && r.fechasCanceladas.includes(m.fechaDeseada)) return;
+            let tRes = window.aMinutos(r.hora);
+            let dRes = r.duracion || (parseInt(conf.duracionTurno) || 90);
+            let tMatch = window.aMinutos(m.horaDeseada);
+            if(tMatch >= tRes && tMatch < (tRes + dRes)) ocupadas.push(parseInt(r.cancha));
+        });
+        
+        let canchaFinal = minC;
+        for(let i = minC; i <= maxC; i++) {
+            if(!ocupadas.includes(i)) { canchaFinal = i; break; }
         }
+        
+        await addDoc(collection(db, "reservas"), { 
+            clubId: m.clubSeleccionado, fecha: m.fechaDeseada, hora: m.horaDeseada, cancha: canchaFinal.toString(), 
+            jugador: `🎮 Liga: ${m.j1}/${m.j2} vs ${m.j3}/${m.j4}`, 
+            duracion: parseInt(conf.duracionTurno) || 90, fechaRegistro: serverTimestamp(), asistencia: false, fijo: false, fechasCanceladas: [], pagoEfectivo: 0, pagoTransferencia: 0, descuento: 0, consumos: [], tipoEvento: "Normal", esClase: false, profe: null, matchmakingId: m.id
+        });
+    } catch(e) { console.error("Error asignando cancha", e); }
+};
 
+// 2. Actualiza la reserva de la grilla a medida que entran jugadores
+window.actualizarNombresEnReserva = async function(m) {
+    try {
+        const qRes = query(collection(db, "reservas"), where("matchmakingId", "==", m.id));
+        const snap = await getDocs(qRes);
+        snap.forEach(async (d) => {
+            await updateDoc(doc(db, "reservas", d.id), {
+                jugador: `🎮 Liga: ${m.j1}/${m.j2} vs ${m.j3}/${m.j4}`
+            });
+        });
+    } catch(e) { console.error("Error actualizando reserva", e); }
+};
+
+// 3. Libera la cancha si el partido competitivo se rechaza/cancela
+window.eliminarReservaMatchmaking = async function(matchId) {
+    try {
+        const qRes = query(collection(db, "reservas"), where("matchmakingId", "==", matchId));
+        const snap = await getDocs(qRes);
+        snap.forEach(async (d) => {
+            await deleteDoc(doc(db, "reservas", d.id));
+        });
+    } catch(e) { console.error("Error liberando cancha", e); }
+};
+        
         // --- MODAL UNIRSE A PARTIDO ---
 window.abrirModalUnirseDetalle = function(id) {
     const m = matchmakingGlobal.find(x => x.id === id); 
