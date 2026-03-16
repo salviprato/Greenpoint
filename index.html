@@ -2441,6 +2441,9 @@ window.cerrarModalUnirseDetalle = function() {
 
             onSnapshot(collection(db, "matchmaking"), (s) => { 
                 matchmakingGlobal=[]; s.forEach(d=>matchmakingGlobal.push({id:d.id,...d.data()}));
+                
+                window.verificarPartidosExpirados();
+                
                 if(typeof window.renderizarPartidosAbiertos === 'function') window.renderizarPartidosAbiertos();
                 if(typeof window.renderizarPartidosResultados === 'function') window.renderizarPartidosResultados();
                 if(typeof window.renderizarHistorialCompetitivo === 'function') window.renderizarHistorialCompetitivo();
