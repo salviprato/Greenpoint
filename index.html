@@ -1784,17 +1784,23 @@
         };
 
         window.cargarClubesDisponibles = async function() {
-            const sel = document.getElementById('comp-club');
-            sel.innerHTML = '<option value="" disabled selected>Cargando clubes...</option>';
-            try {
-                const snap = await getDocs(collection(db, "configuracion"));
-                sel.innerHTML = '<option value="" disabled selected>Elige un club...</option>';
-                let count = 0;
-                snap.forEach(doc => { sel.innerHTML += `<option value="${doc.id}">${doc.id.toUpperCase()}</option>`; count++; });
-                if(count === 0) sel.innerHTML = '<option value="Orbit">ORBIT</option>';
-            } catch(e) { sel.innerHTML = '<option value="Orbit">ORBIT</option>'; }
-        };
-
+    const sel = document.getElementById('comp-club');
+    sel.innerHTML = '<option value="" disabled selected>Cargando clubes...</option>';
+    try {
+        const snap = await getDocs(collection(db, "configuracion"));
+        sel.innerHTML = '<option value="" disabled selected>Elige un club...</option>';
+        let count = 0;
+        snap.forEach(doc => { 
+            // Ignoramos el club fantasma 'Orbit' para que solo quede 'club'
+            if (doc.id.toLowerCase() !== 'orbit') {
+                sel.innerHTML += `<option value="${doc.id}">${doc.id.toUpperCase()}</option>`; 
+                count++; 
+            }
+        });
+        if(count === 0) sel.innerHTML = '<option value="club">CLUB</option>';
+    } catch(e) { sel.innerHTML = '<option value="club">CLUB</option>'; }
+};
+        
         window.renderizarTorneosPublicos = function() {
             const div = document.getElementById('lista-torneos'); if(!div) return; div.innerHTML = '';
             if(torneosAdminGlobal.length === 0) { div.innerHTML = '<div style="padding: 20px; color: #9ca3af;">Aún no hay torneos programados.</div>'; return; }
