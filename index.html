@@ -1948,22 +1948,45 @@
             div.innerHTML = html;
         };
 
-        window.responderInvitacion = async function(id, aceptada) {
-            if(aceptada) { await updateDoc(doc(db, "matchmaking", id), { estado: 'Buscando Rival' }); alert("¡Invitación aceptada!"); } 
-            else { await deleteDoc(doc(db, "matchmaking", id)); alert("Invitación rechazada."); }
-        };
-
-        window.abrirModalUnirseDetalle = function(id) { 
-            const m = matchmakingGlobal.find(x => x.id === id); if(!m) return;
-            document.getElementById('unirse-partido-id').value = id; 
-            let anotados = [m.j1, m.j2, m.j3, m.j4].filter(j => j !== 'Libre').length;
-            document.getElementById('lbl-unirse-info').innerHTML = `Fecha: ${m.fechaDeseada} - ${m.horaDeseada} hs<br>Ya anotados: <strong>${anotados} Jugadores Ocultos</strong>`;
-            document.getElementById('unirse-nombre').value = window.perfilJugador?.nombreCompleto || 'Jugador Anónimo';
-            document.getElementById('unirse-pareja').value = 'random'; window.toggleAmigoInput('unirse-pareja', 'div-amigo-unirse');
-            document.getElementById('modal-unirse-detalle').style.display = 'flex'; 
-        };
-
-        window.cerrarModalUnirseDetalle = function() { document.getElementById('modal-unirse-detalle').style.display = 'none'; };
+        async function reservarCanchaParaMatchmaking(m) {
+            try {
+                const confDoc = await getDoc(doc(db, "configuracion", m.clubSeleccionado));
+                if(!confDoc.exists()) return;
+                const conf = confDoc.data();
+                
+                let cIn = parseInt(conf.canchasIndoor) || 0;
+                let cOut = parseInt(conf.canchasOutdoor) || 0;
+                let cTenis = parseInt(conf.canchasTenis) || 0;
+                
+                let minC = 1, maxC = 1;
+                if(m.tipoCancha === 'Indoor') { minC = 1; maxC = cIn; }
+                else if(m.tipoCancha === 'Outdoor') { minC = cIn + 1; maxC = cIn + cOut; }
+                else { minC = cIn + cOut + 1; maxC = cIn + cOut + cTenis; }
+                
+                const qRes = query(collection(db, "reservas"), where("clubId", "==", m.clubSeleccionado), where("fecha", "==", m.fechaDeseada));
+                const snap = await getDocs(qRes);
+                let ocupadas = [];
+                snap.forEach(d => {
+                    let r = d.data();
+                    if(r.fechasCanceladas && r.fechasCanceladas.includes(m.fechaDeseada)) return;
+                    let tRes = window.aMinutos(r.hora);
+                    let dRes = r.duracion || (parseInt(conf.duracionTurno) || 90);
+                    let tMatch = window.aMinutos(m.horaDeseada);
+                    if(tMatch >= tRes && tMatch < (tRes + dRes)) ocupadas.push(parseInt(r.cancha));
+                });
+                
+                let canchaFinal = minC;
+                for(let i = minC; i <= maxC; i++) {
+                    if(!ocupadas.includes(i)) { canchaFinal = i; break; }
+                }
+                
+                await addDoc(collection(db, "reservas"), { 
+                    clubId: m.clubSeleccionado, fecha: m.fechaDeseada, hora: m.horaDeseada, cancha: canchaFinal.toString(), 
+                    jugador: `🎮 Liga: ${m.j1}/${m.j2} vs ${m.j3}/${m.j4}`, 
+                    duracion: parseInt(conf.duracionTurno) || 90, fechaRegistro: serverTimestamp(), asistencia: false, fijo: false, fechasCanceladas: [], pagoEfectivo: 0, pagoTransferencia: 0, descuento: 0, consumos: [], tipoEvento: "Normal", esClase: false, profe: null, matchmakingId: m.id
+                });
+            } catch(e) { console.error("Error asignando cancha", e); }
+        }
 
         window.confirmarUnirsePartido = async function() { 
             const id = document.getElementById('unirse-partido-id').value; const m = matchmakingGlobal.find(x => x.id === id); if(!m) return;
@@ -1987,22 +2010,85 @@
                 if(nuevosDatos.j2 === 'Libre') nuevosDatos.j2 = jug; else if(nuevosDatos.j3 === 'Libre') nuevosDatos.j3 = jug; else if(nuevosDatos.j4 === 'Libre') nuevosDatos.j4 = jug;
             });
 
-            if(nuevosDatos.j1 !== 'Libre' && nuevosDatos.j2 !== 'Libre' && nuevosDatos.j3 !== 'Libre' && nuevosDatos.j4 !== 'Libre') {
+            if (tipoPareja === 'amigo') {
+                nuevosDatos.estado = 'Esperando Confirmacion Amigo Unirse';
+                alert("Te has anotado e invitado a tu amigo. El partido se confirmará cuando acepte.");
+            } else if(nuevosDatos.j1 !== 'Libre' && nuevosDatos.j2 !== 'Libre' && nuevosDatos.j3 !== 'Libre' && nuevosDatos.j4 !== 'Libre') {
                 nuevosDatos.estado = 'Partido Confirmado';
-                try {
-                    await addDoc(collection(db, "reservas"), { 
-                        clubId: m.clubSeleccionado, fecha: m.fechaDeseada, hora: m.horaDeseada, cancha: "1", 
-                        jugador: `🎮 Partido: ${nuevosDatos.j1}/${nuevosDatos.j2} vs ${nuevosDatos.j3}/${nuevosDatos.j4}`, 
-                        duracion: duracionGlobal, fechaRegistro: serverTimestamp(), asistencia: false, fijo: false, fechasCanceladas: [], pagoEfectivo: 0, pagoTransferencia: 0, descuento: 0, consumos: [], tipoEvento: "Normal", esClase: false, profe: null, matchmakingId: id
-                    });
-                    alert("¡Partido completado! Agendado en el club.");
-                } catch(e) { console.error(e); }
+                await reservarCanchaParaMatchmaking(nuevosDatos);
+                alert("¡Partido completado! Cancha agendada en el club.");
             } else { alert("Te anotaste exitosamente. Faltan jugadores para completarlo."); }
 
             await updateDoc(doc(db, "matchmaking", id), { j2: nuevosDatos.j2, j3: nuevosDatos.j3, j4: nuevosDatos.j4, estado: nuevosDatos.estado }); 
             window.cerrarModalUnirseDetalle(); 
         };
 
+        window.renderizarPartidosAbiertos = function() {
+            const div = document.getElementById('lista-partidos-abiertos'); if(!div) return; div.innerHTML = '';
+            let hoy = obtenerFechaHoy(); let ahoraH = new Date().getHours().toString().padStart(2, '0') + ":" + new Date().getMinutes().toString().padStart(2, '0');
+            let miNombre = window.perfilJugador?.nombreCompleto || '';
+            let html = '';
+
+            let invitaciones = matchmakingGlobal.filter(m => m.estado.includes('Esperando Confirmacion') && (m.j2 === miNombre || m.j3 === miNombre || m.j4 === miNombre) && m.fechaDeseada >= hoy);
+            if(invitaciones.length > 0) {
+                html += '<div style="margin-bottom: 15px;"><strong style="color:#8b5cf6;">🔔 Tienes invitaciones de pareja:</strong></div>';
+                invitaciones.forEach(m => {
+                    let quienInvito = (m.j3 === miNombre || m.j4 === miNombre) ? m.j3 : m.j1; 
+                    html += `<div style="border:1px solid #8b5cf6; padding:12px; margin-bottom:12px; border-radius:8px; background:#2e1065;"><div style="color:#d1d5db; margin-bottom: 8px;">Alguien te invitó a jugar en <strong>${m.clubSeleccionado}</strong>.</div><div style="color:#9ca3af; font-size:0.85em; margin-bottom: 10px;">📅 ${m.fechaDeseada} | ⌚ ${m.horaDeseada} hs | Cancha ${m.tipoCancha}</div><div style="display:flex; gap:10px;"><button class="btn-modal btn-guardar" style="flex:1; padding:8px; font-size:0.85em;" onclick="window.responderInvitacion('${m.id}', true)">✅ Aceptar</button><button class="btn-modal btn-eliminar" style="flex:1; padding:8px; font-size:0.85em;" onclick="window.responderInvitacion('${m.id}', false)">❌ Rechazar</button></div></div>`;
+                });
+            }
+
+            let abiertos = matchmakingGlobal.filter(m => {
+                if (m.estado !== 'Buscando Rival') return false; 
+                if (m.fechaDeseada < hoy) return false; 
+                if (m.fechaDeseada === hoy && m.horaDeseada <= ahoraH) return false; 
+                if (m.j1 === miNombre || m.j2 === miNombre || m.j3 === miNombre || m.j4 === miNombre) return false; 
+                let cupos = 0; if(m.j2==='Libre')cupos++; if(m.j3==='Libre')cupos++; if(m.j4==='Libre')cupos++;
+                if (cupos === 0) return false; 
+                return true;
+            });
+
+            if(abiertos.length === 0 && invitaciones.length === 0) { 
+                html += '<div style="color:#9ca3af; padding:10px; text-align:center;">No hay partidos disponibles que se ajusten a ti. ¡Anímate a crear uno!</div>'; 
+            } else if (abiertos.length > 0) {
+                html += '<div style="margin-bottom: 10px;"><strong style="color:#10b981;">🎾 Partidos buscando jugadores:</strong></div>';
+                abiertos.forEach(m => { 
+                    let cuposLibres = 0; if(m.j2==='Libre')cuposLibres++; if(m.j3==='Libre')cuposLibres++; if(m.j4==='Libre')cuposLibres++;
+                    let dJ1 = m.j1 !== 'Libre' ? '👤 Oculto' : 'Libre'; let dJ2 = m.j2 !== 'Libre' ? '👤 Oculto' : 'Libre';
+                    let dJ3 = m.j3 !== 'Libre' ? '👤 Oculto' : 'Libre'; let dJ4 = m.j4 !== 'Libre' ? '👤 Oculto' : 'Libre';
+
+                    html += `<div style="border:1px solid #44505d; padding:12px; margin-bottom:8px; border-radius:8px; background:#1e252d;"><div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 1.05em;"><strong style="color:#3b82f6;">${dJ1} / ${dJ2}</strong><span style="color:#f59e0b; font-weight:bold; margin: 0 10px;">VS</span><strong style="color:#ef4444;">${dJ3} / ${dJ4}</strong></div><div style="color:#d1d5db; font-size:0.9em; margin-bottom:4px;">📍 ${m.clubSeleccionado}</div><div style="color:#9ca3af; font-size:0.85em;">📅 ${m.fechaDeseada} | ⌚ ${m.horaDeseada} hs | Cancha ${m.tipoCancha}</div><div style="color:#10b981; font-size:0.85em; margin-top:4px;">🎟️ Lugares vacantes: ${cuposLibres}</div><button class="btn-modal btn-guardar" style="width:100%; margin-top:10px; padding:8px; font-size:0.9em; background-color:#10b981;" onclick="window.abrirModalUnirseDetalle('${m.id}')">Unirme a este partido</button></div>`; 
+                });
+            }
+            div.innerHTML = html;
+        };
+
+        window.responderInvitacion = async function(id, aceptada) {
+            const m = matchmakingGlobal.find(x => x.id === id); if(!m) return;
+            if(aceptada) { 
+                let nuevoEst = 'Buscando Rival';
+                if(m.j1 !== 'Libre' && m.j2 !== 'Libre' && m.j3 !== 'Libre' && m.j4 !== 'Libre') {
+                    nuevoEst = 'Partido Confirmado';
+                    await reservarCanchaParaMatchmaking(m);
+                    alert("¡Invitación aceptada! Partido completado y agendado.");
+                } else { alert("¡Invitación aceptada! El partido sigue buscando rivales."); }
+                await updateDoc(doc(db, "matchmaking", id), { estado: nuevoEst }); 
+            } else { 
+                let miNombre = window.perfilJugador?.nombreCompleto;
+                let nuevosDatos = {...m};
+                if(nuevosDatos.j2 === miNombre) nuevosDatos.j2 = 'Libre';
+                if(nuevosDatos.j3 === miNombre) nuevosDatos.j3 = 'Libre';
+                if(nuevosDatos.j4 === miNombre) nuevosDatos.j4 = 'Libre';
+                
+                if(m.estado === 'Esperando Confirmacion Amigo') {
+                    await deleteDoc(doc(db, "matchmaking", id)); alert("Partido cancelado porque rechazaste.");
+                } else {
+                    nuevosDatos.estado = 'Buscando Rival';
+                    await updateDoc(doc(db, "matchmaking", id), nuevosDatos); alert("Rechazaste la invitación.");
+                }
+            }
+        };
+        
         window.renderizarPartidosResultados = function() {
             const div = document.getElementById('lista-partidos-resultados'); if(!div) return; div.innerHTML = '';
             let confirmados = matchmakingGlobal.filter(m=>m.estado==='Partido Confirmado' || m.estado==='Conflicto de Resultado');
