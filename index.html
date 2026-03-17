@@ -1021,7 +1021,6 @@
                         <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Jugador 2 (Tu Pareja):</label>
                         <select id="inscripcion-tipo-pareja" class="input-form" style="margin-top: 4px;" onchange="window.toggleAmigoInput('inscripcion-tipo-pareja', 'div-amigo-torneo')">
                             <option value="amigo" selected>🤝 Invitar a un amigo de mi lista</option>
-                            <option value="externo">➕ Anotar amigo externo</option>
                         </select>
                     </div>
 
@@ -1029,12 +1028,6 @@
                         <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Selecciona a tu amigo:</label>
                         <select id="inscripcion-nombre-amigo" class="input-form" style="margin-top: 4px;"><option value="" disabled selected>No tienes amigos agregados</option></select>
                     </div>
-
-                    <div id="div-externo-torneo" style="display: none;">
-                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Nombre del amigo externo:</label>
-                        <input type="text" id="inscripcion-nombre-externo" class="input-form" placeholder="Ej: Luis Gomez" style="margin-top: 4px;">
-                    </div>
-
                 </div>
 
                 <button class="btn-modal btn-guardar" style="margin-top: 20px; background-color: #10b981;" onclick="window.confirmarInscripcionTorneo()">Confirmar Inscripción</button>
