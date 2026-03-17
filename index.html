@@ -1900,18 +1900,17 @@
 };
         
         window.confirmarCrearCompetitivo = async function() {
-    const miNombre = document.getElementById('comp-nombre-jugador').value; const tipoPareja = document.getElementById('comp-pareja').value;
+    const miNombre = document.getElementById('comp-nombre-jugador').value; 
+    const tipoPareja = document.getElementById('comp-pareja').value;
     let j2 = "Libre";
+    
     if (tipoPareja === 'amigo') {
-        j2 = document.getElementById('comp-nombre-amigo').value; if(!j2) { alert("Selecciona un amigo."); return; }
-    } else if (tipoPareja === 'externo') {
-        j2 = document.getElementById('comp-nombre-externo').value.trim(); if(!j2) { alert("Escribe el nombre."); return; }
-        j2 += " (Ext)"; 
+        j2 = document.getElementById('comp-nombre-amigo').value; 
+        if(!j2) { alert("Selecciona un amigo."); return; }
     }
     
     let estadoInicial = (tipoPareja === 'amigo') ? 'Esperando Confirmacion Amigo' : 'Buscando Rival';
     
-    // 1. Guardamos los datos y obtenemos el ID del partido
     let mData = { 
         fechaDeseada: fechaSeleccionada, j1: miNombre, j2: j2, j3: "Libre", j4: "Libre",
         clubSeleccionado: document.getElementById('comp-club').value, tipoCancha: document.getElementById('comp-cancha').value, 
@@ -1920,7 +1919,6 @@
     const docRef = await addDoc(collection(db, "matchmaking"), mData);
     mData.id = docRef.id; 
     
-    // 2. RESERVAMOS LA CANCHA INMEDIATAMENTE
     await window.reservarCanchaParaMatchmaking(mData);
     
     if (estadoInicial === 'Esperando Confirmacion Amigo') alert("Partido creado. Esperando que tu amigo acepte.");
