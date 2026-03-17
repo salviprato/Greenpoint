@@ -2617,15 +2617,19 @@ window.invitarAmigoPendiente = async function(matchId, miEquipo, selectId) {
                 });
             }
 
-            onSnapshot(collection(db, "matchmaking"), (s) => { 
+           onSnapshot(collection(db, "matchmaking"), (s) => { 
                 matchmakingGlobal=[]; s.forEach(d=>matchmakingGlobal.push({id:d.id,...d.data()}));
                 
                 window.verificarPartidosExpirados();
                 
                 if(typeof window.renderizarPartidosAbiertos === 'function') window.renderizarPartidosAbiertos();
                 if(typeof window.renderizarPartidosResultados === 'function') window.renderizarPartidosResultados();
+                // AGREGA ESTA LÍNEA AQUÍ:
+                if(typeof window.renderizarPartidosPendientes === 'function') window.renderizarPartidosPendientes();
+                
                 if(typeof window.renderizarHistorialCompetitivo === 'function') window.renderizarHistorialCompetitivo();
             });
+            
             onSnapshot(collection(db, "ranking"), (s) => { 
                 rankingGlobal=[]; s.forEach(d=>rankingGlobal.push({id:d.id,...d.data()})); 
                 if(typeof window.renderizarRanking === 'function') window.renderizarRanking(); 
