@@ -2090,13 +2090,14 @@ window.cerrarModalUnirseDetalle = function() {
     let nuevosDatos = { ...m }; 
     
     if (vieneSolo) {
-        // Lógica 1: Viene solo. Ocupa el primer lugar libre (Ej: si J2 está libre, se suma al equipo del creador).
+        // Lógica 1: Viene solo. Ocupa el primer lugar libre.
         if(nuevosDatos.j2 === 'Libre') nuevosDatos.j2 = miNombre; 
         else if(nuevosDatos.j3 === 'Libre') nuevosDatos.j3 = miNombre; 
         else if(nuevosDatos.j4 === 'Libre') nuevosDatos.j4 = miNombre;
     } else {
-        // Lógica 2: Vienen en pareja. Ocupan SI O SI el equipo 2 completo (J3 y J4) para jugar juntos contra el equipo 1.
+        // Lógica 2: Vienen en pareja.
         if (nuevosDatos.j3 === 'Libre' && nuevosDatos.j4 === 'Libre') {
+            // Ocupa el lugar 3 para sí mismo, y el lugar 4 para su amigo
             nuevosDatos.j3 = miNombre;
             nuevosDatos.j4 = nombreCompanero;
         } else {
@@ -2106,19 +2107,36 @@ window.cerrarModalUnirseDetalle = function() {
     }
 
     if (tipoPareja === 'amigo') {
+        // --- CAMBIO CLAVE: Lógica de invitación ---
+        // En lugar de "Partido Confirmado", pasa a "Esperando Confirmacion Amigo Unirse"
+        // Esto detiene la reserva de cancha hasta que el amigo (J4) acepte.
         nuevosDatos.estado = 'Esperando Confirmacion Amigo Unirse';
-        await window.actualizarNombresEnReserva(nuevosDatos);
-        alert("Te has anotado e invitado a tu amigo al equipo contrario. El partido se confirmará cuando acepte.");
-    } else if(nuevosDatos.j1 !== 'Libre' && nuevosDatos.j2 !== 'Libre' && nuevosDatos.j3 !== 'Libre' && nuevosDatos.j4 !== 'Libre') {
-        nuevosDatos.estado = 'Partido Confirmado';
-        await window.actualizarNombresEnReserva(nuevosDatos);
-        alert("¡Te uniste! El partido ya está completo.");
-    } else { 
-        await window.actualizarNombresEnReserva(nuevosDatos);
-        alert("Te anotaste exitosamente. Faltan jugadores para completarlo."); 
+        
+        // Actualizamos Firebase. El amigo (ahora asignado en j4) verá la invitación en su pantalla.
+        await updateDoc(doc(db, "matchmaking", id), { 
+            j2: nuevosDatos.j2, j3: nuevosDatos.j3, j4: nuevosDatos.j4, estado: nuevosDatos.estado 
+        });
+        
+        alert("Te has anotado e invitado a tu amigo. El partido se confirmará cuando acepte.");
+        
+    } else {
+        // Si viene solo, revisamos si el partido se llenó con su entrada
+        if(nuevosDatos.j1 !== 'Libre' && nuevosDatos.j2 !== 'Libre' && nuevosDatos.j3 !== 'Libre' && nuevosDatos.j4 !== 'Libre') {
+            nuevosDatos.estado = 'Partido Confirmado';
+            await updateDoc(doc(db, "matchmaking", id), { 
+                j2: nuevosDatos.j2, j3: nuevosDatos.j3, j4: nuevosDatos.j4, estado: nuevosDatos.estado 
+            });
+            await window.reservarCanchaParaMatchmaking(nuevosDatos); // Crea la reserva en el club
+            alert("¡Te uniste! El partido ya está completo y la cancha ha sido reservada.");
+        } else { 
+            await updateDoc(doc(db, "matchmaking", id), { 
+                j2: nuevosDatos.j2, j3: nuevosDatos.j3, j4: nuevosDatos.j4, estado: nuevosDatos.estado 
+            });
+            await window.actualizarNombresEnReserva(nuevosDatos);
+            alert("Te anotaste exitosamente. Faltan jugadores para completarlo."); 
+        }
     }
 
-    await updateDoc(doc(db, "matchmaking", id), { j2: nuevosDatos.j2, j3: nuevosDatos.j3, j4: nuevosDatos.j4, estado: nuevosDatos.estado }); 
     window.cerrarModalUnirseDetalle(); 
 };
         
