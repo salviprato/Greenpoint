@@ -2060,44 +2060,63 @@ window.cerrarModalUnirseDetalle = function() {
 };
         
         window.confirmarUnirsePartido = async function() { 
-            const id = document.getElementById('unirse-partido-id').value; const m = matchmakingGlobal.find(x => x.id === id); if(!m) return;
-            const miNombre = document.getElementById('unirse-nombre').value; const tipoPareja = document.getElementById('unirse-pareja').value;
-            let vieneSolo = (tipoPareja === 'random'); let nombreCompanero = "";
-            
-            if (!vieneSolo) {
-                if (tipoPareja === 'amigo') {
-                    nombreCompanero = document.getElementById('unirse-nombre-amigo').value; if(!nombreCompanero) { alert("Selecciona un amigo."); return; }
-                } else if (tipoPareja === 'externo') {
-                    nombreCompanero = document.getElementById('unirse-nombre-externo').value.trim(); if(!nombreCompanero) { alert("Escribe el nombre."); return; }
-                    nombreCompanero += " (Ext)"; 
-                }
-            }
+    const id = document.getElementById('unirse-partido-id').value; 
+    const m = matchmakingGlobal.find(x => x.id === id); 
+    if(!m) return;
+    
+    const miNombre = document.getElementById('unirse-nombre').value; 
+    const tipoPareja = document.getElementById('unirse-pareja').value;
+    let vieneSolo = (tipoPareja === 'random'); 
+    let nombreCompanero = "";
+    
+    if (!vieneSolo) {
+        nombreCompanero = document.getElementById('unirse-nombre-amigo').value; 
+        if(!nombreCompanero) { alert("Selecciona un amigo."); return; }
+    }
 
-            let cuposLibres = 0; if(m.j2 === 'Libre') cuposLibres++; if(m.j3 === 'Libre') cuposLibres++; if(m.j4 === 'Libre') cuposLibres++;
-            let cuposNecesarios = vieneSolo ? 1 : 2; if (cuposLibres < cuposNecesarios) { alert(`No hay suficientes lugares.`); return; }
+    let cuposLibres = 0; 
+    if(m.j2 === 'Libre') cuposLibres++; 
+    if(m.j3 === 'Libre') cuposLibres++; 
+    if(m.j4 === 'Libre') cuposLibres++;
+    
+    let cuposNecesarios = vieneSolo ? 1 : 2; 
+    if (cuposLibres < cuposNecesarios) { alert(`No hay suficientes lugares para sumarte de esta forma.`); return; }
 
-            let nuevosDatos = { ...m }; let jugadoresAInsertar = vieneSolo ? [miNombre] : [miNombre, nombreCompanero];
-            jugadoresAInsertar.forEach(jug => {
-                if(nuevosDatos.j2 === 'Libre') nuevosDatos.j2 = jug; else if(nuevosDatos.j3 === 'Libre') nuevosDatos.j3 = jug; else if(nuevosDatos.j4 === 'Libre') nuevosDatos.j4 = jug;
-            });
-
-            if (tipoPareja === 'amigo') {
-            nuevosDatos.estado = 'Esperando Confirmacion Amigo Unirse';
-            await window.actualizarNombresEnReserva(nuevosDatos); // Actualiza la grilla
-            alert("Te has anotado e invitado a tu amigo. El partido se confirmará cuando acepte.");
-        } else if(nuevosDatos.j1 !== 'Libre' && nuevosDatos.j2 !== 'Libre' && nuevosDatos.j3 !== 'Libre' && nuevosDatos.j4 !== 'Libre') {
-            nuevosDatos.estado = 'Partido Confirmado';
-            await window.actualizarNombresEnReserva(nuevosDatos); // Actualiza la grilla
-            alert("¡Partido completado!");
-        } else { 
-            await window.actualizarNombresEnReserva(nuevosDatos); // Actualiza la grilla
-            alert("Te anotaste exitosamente. Faltan jugadores para completarlo."); 
+    let nuevosDatos = { ...m }; 
+    
+    if (vieneSolo) {
+        // Lógica 1: Viene solo. Ocupa el primer lugar libre (Ej: si J2 está libre, se suma al equipo del creador).
+        if(nuevosDatos.j2 === 'Libre') nuevosDatos.j2 = miNombre; 
+        else if(nuevosDatos.j3 === 'Libre') nuevosDatos.j3 = miNombre; 
+        else if(nuevosDatos.j4 === 'Libre') nuevosDatos.j4 = miNombre;
+    } else {
+        // Lógica 2: Vienen en pareja. Ocupan SI O SI el equipo 2 completo (J3 y J4) para jugar juntos contra el equipo 1.
+        if (nuevosDatos.j3 === 'Libre' && nuevosDatos.j4 === 'Libre') {
+            nuevosDatos.j3 = miNombre;
+            nuevosDatos.j4 = nombreCompanero;
+        } else {
+            alert("No hay lugares disponibles en un mismo equipo para entrar con pareja. Intenta entrar solo.");
+            return;
         }
+    }
 
-        await updateDoc(doc(db, "matchmaking", id), { j2: nuevosDatos.j2, j3: nuevosDatos.j3, j4: nuevosDatos.j4, estado: nuevosDatos.estado }); 
-            window.cerrarModalUnirseDetalle(); 
-        };
+    if (tipoPareja === 'amigo') {
+        nuevosDatos.estado = 'Esperando Confirmacion Amigo Unirse';
+        await window.actualizarNombresEnReserva(nuevosDatos);
+        alert("Te has anotado e invitado a tu amigo al equipo contrario. El partido se confirmará cuando acepte.");
+    } else if(nuevosDatos.j1 !== 'Libre' && nuevosDatos.j2 !== 'Libre' && nuevosDatos.j3 !== 'Libre' && nuevosDatos.j4 !== 'Libre') {
+        nuevosDatos.estado = 'Partido Confirmado';
+        await window.actualizarNombresEnReserva(nuevosDatos);
+        alert("¡Te uniste! El partido ya está completo.");
+    } else { 
+        await window.actualizarNombresEnReserva(nuevosDatos);
+        alert("Te anotaste exitosamente. Faltan jugadores para completarlo."); 
+    }
 
+    await updateDoc(doc(db, "matchmaking", id), { j2: nuevosDatos.j2, j3: nuevosDatos.j3, j4: nuevosDatos.j4, estado: nuevosDatos.estado }); 
+    window.cerrarModalUnirseDetalle(); 
+};
+        
         window.responderInvitacion = async function(id, aceptada) {
             const m = matchmakingGlobal.find(x => x.id === id); if(!m) return;
             if(aceptada) { 
