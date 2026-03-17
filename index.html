@@ -881,9 +881,19 @@
                     </div>
                 </div>
 
+                <div class="seccion-acordeon" style="margin-bottom: 15px;">
+                    <div class="header-acordeon" onclick="window.toggleAcordeon('ac-comp-pendientes')">
+                        <span>⏳ 4. Partidos Pendientes</span> <span id="flecha-ac-comp-pendientes">🔽</span>
+                    </div>
+                    <div id="ac-comp-pendientes" class="contenido-acordeon">
+                        <p style="font-size: 0.85em; color: #9ca3af; margin-top: 0; margin-bottom: 10px;">Partidos incompletos en los que participas:</p>
+                        <div id="lista-partidos-pendientes" class="scroll-interno" style="max-height: 250px; overflow-y: auto;"></div>
+                    </div>
+                </div>
+                
                 <div class="seccion-acordeon">
                     <div class="header-acordeon" onclick="window.toggleAcordeon('ac-comp-historial')">
-                        <span>📜 4. Historial</span> <span id="flecha-ac-comp-historial">🔽</span>
+                        <span>📜 5. Historial</span> <span id="flecha-ac-comp-historial">🔽</span>
                     </div>
                     <div id="ac-comp-historial" class="contenido-acordeon">
                         <p style="font-size: 0.85em; color: #9ca3af; margin-top: 0; margin-bottom: 10px;">Historial completo de encuentros:</p>
