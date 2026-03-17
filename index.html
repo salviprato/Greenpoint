@@ -1844,17 +1844,14 @@
             try { await updateDoc(doc(db, "torneos_admin", id), { inscriptos: i }); alert("¡Inscripción exitosa!"); window.cerrarModalInscripcionTorneo(); } catch(e) { alert("Hubo un error."); }
         };
         
-        window.toggleAmigoInput = function(selectId, divAmigoId) { 
-            const val = document.getElementById(selectId).value;
-            if (selectId === 'inscripcion-tipo-pareja') {
-                document.getElementById('div-amigo-torneo').style.display = val === 'amigo' ? 'block' : 'none';
-                document.getElementById('div-externo-torneo').style.display = val === 'externo' ? 'block' : 'none';
-            } else {
-                document.getElementById(divAmigoId).style.display = val === 'amigo' ? 'block' : 'none';
-                let divExternoId = divAmigoId === 'div-amigo-comp' ? 'div-externo-comp' : 'div-externo-unirse';
-                document.getElementById(divExternoId).style.display = val === 'externo' ? 'block' : 'none';
-            }
-        };
+       window.toggleAmigoInput = function(selectId, divAmigoId) { 
+    const val = document.getElementById(selectId).value;
+    if (selectId === 'inscripcion-tipo-pareja') {
+        document.getElementById('div-amigo-torneo').style.display = val === 'amigo' ? 'block' : 'none';
+    } else {
+        document.getElementById(divAmigoId).style.display = val === 'amigo' ? 'block' : 'none';
+    }
+};
         
         window.llenarHorariosDisponiblesCompetitivo = async function() {
     const sel = document.getElementById('comp-hora'); const clubId = document.getElementById('comp-club').value; const superficie = document.getElementById('comp-cancha').value;
