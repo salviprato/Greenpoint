@@ -922,19 +922,18 @@
                         <select id="unirse-pareja" class="input-form" style="margin-top: 4px;" onchange="window.toggleAmigoInput('unirse-pareja', 'div-amigo-unirse')">
                             <option value="random" selected>🎲 Pareja Random (Me anoto solo)</option>
                             <option value="amigo">🤝 Invitar a un amigo de mi lista</option>
-                            <option value="externo">➕ Anotar amigo externo</option>
+                        </select>
+                    <div>
+                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Tu Pareja:</label>
+                        <select id="unirse-pareja" class="input-form" style="margin-top: 4px;" onchange="window.toggleAmigoInput('unirse-pareja', 'div-amigo-unirse')">
+                            <option value="random" selected>🎲 Pareja Random (Me anoto solo)</option>
+                            <option value="amigo">🤝 Invitar a un amigo de mi lista</option>
                         </select>
                     </div>
                     <div id="div-amigo-unirse" style="display: none;">
                         <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Selecciona tu compañero/a:</label>
                         <select id="unirse-nombre-amigo" class="input-form" style="margin-top: 4px;"><option value="" disabled selected>No tienes amigos agregados</option></select>
                     </div>
-                    <div id="div-externo-unirse" style="display: none;">
-                        <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Nombre del amigo externo:</label>
-                        <input type="text" id="unirse-nombre-externo" class="input-form" placeholder="Ej: Juan" style="margin-top: 4px;">
-                    </div>
-                </div>
-
                 <button class="btn-modal btn-guardar" style="margin-top: 20px; background-color: #10b981;" onclick="window.confirmarUnirsePartido()">Confirmar y Unirme</button>
                 <button class="btn-modal btn-cerrar" style="margin-top: 10px;" onclick="window.cerrarModalUnirseDetalle()">Cancelar</button>
             </div>
