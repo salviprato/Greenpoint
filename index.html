@@ -1755,12 +1755,19 @@
             if(esEquipo1) rondas[indexRonda + 1].partidos[indexSiguientePartido].equipo1 = nombreGanador; else rondas[indexRonda + 1].partidos[indexSiguientePartido].equipo2 = nombreGanador;
         }
         window.seleccionarGanador = async function(indexRonda, indexPartido, equipoGanador) {
-            const idTorneo = document.getElementById('torneo-activo-id').value; const t = torneosAdminGlobal.find(x=>x.id===idTorneo); if(!t || !t.bracket) return;
-            if(equipoGanador === "BYE" || !equipoGanador || equipoGanador === "???") return; if(!confirm(`¿Avanzar a ${equipoGanador}?`)) return;
-            let rondasCopy = JSON.parse(JSON.stringify(t.bracket)); rondasCopy[indexRonda].partidos[indexPartido].ganador = equipoGanador;
-            if (indexRonda + 1 < rondasCopy.length) { avanzarEquipoEnBracketLocal(rondasCopy, indexRonda, indexPartido, equipoGanador); } else { alert(`¡${equipoGanador} es CAMPEÓN! 🏆`); }
-            try { await updateDoc(doc(db, "torneos_admin", idTorneo), { bracket: rondasCopy }); } catch(e) { alert("Error guardando."); }
-        }
+            const idTorneo = document.getElementById('torneo-activo-id').value; const t = torneosAdminGlobal.find(x=>x.id===idTorneo); if(!t || !t.bracket) return;
+            if(equipoGanador === "BYE" || !equipoGanador || equipoGanador === "???") return; if(!confirm(`¿Avanzar a ${equipoGanador}?`)) return;
+            let rondasCopy = JSON.parse(JSON.stringify(t.bracket)); rondasCopy[indexRonda].partidos[indexPartido].ganador = equipoGanador;
+            
+            if (indexRonda + 1 < rondasCopy.length) { 
+                avanzarEquipoEnBracketLocal(rondasCopy, indexRonda, indexPartido, equipoGanador); 
+            } else { 
+                alert(`¡${equipoGanador} es CAMPEÓN! 🏆\nSe repartirán los puntos del torneo al ranking.`); 
+                // AQUI LLAMAMOS A LA NUEVA FUNCIÓN PARA REPARTIR PUNTOS
+                await window.procesarPuntosTorneo(rondasCopy);
+            }
+            try { await updateDoc(doc(db, "torneos_admin", idTorneo), { bracket: rondasCopy }); } catch(e) { alert("Error guardando."); }
+        }
         function renderizarBracket(t) {
             const cont = document.getElementById('contenedor-bracket'); cont.innerHTML = ''; if(!t.bracket) { cont.innerHTML = '<div style="color: #9ca3af; padding: 20px;">Aún no se han generado los cruces.</div>'; return; }
             const nombresRondas = ["Dieciseisavos", "Octavos", "Cuartos", "Semis", "Final", "Campeón"]; let diff = nombresRondas.length - 1 - t.bracket.length; let labels = t.bracket.map((r, i) => nombresRondas[diff + i] || `Ronda ${i+1}`);
