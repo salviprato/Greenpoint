@@ -894,7 +894,16 @@
                         <div style="margin-bottom: 15px;">
                             <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Filtrar partidos por fecha:</label>
                             <div id="calendario-competitivo-unirse" class="calendario-strip" style="margin-bottom: 0; padding-bottom: 5px;"></div>
-                        </div>
+
+                            <label style="font-size: 0.85em; color: #d1d5db; font-weight: bold;">Filtrar por modalidad:</label>
+                            <select id="filtro-modalidad-unirse" class="input-form" style="margin-top: 4px;" onchange="window.renderizarPartidosAbiertos()">
+                                <option value="Todos">Todas las modalidades</option>
+                                <option value="Masculino">Masculino</option>
+                                <option value="Femenino">Femenino</option>
+                                <option value="Mixto">Mixto</option>
+                            </select>
+                        </div>
+                        
                         <p style="font-size: 0.85em; color: #9ca3af; margin-top: 0; margin-bottom: 10px;">Partidos buscando rivales:</p>
                         <div id="lista-partidos-abiertos" class="scroll-interno" style="max-height: 250px; overflow-y: auto;"></div>
                     </div>
