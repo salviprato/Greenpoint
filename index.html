@@ -1768,6 +1768,87 @@
             }
             try { await updateDoc(doc(db, "torneos_admin", idTorneo), { bracket: rondasCopy }); } catch(e) { alert("Error guardando."); }
         }
+        window.procesarPuntosTorneo = async function(bracket) {
+            let puntosPorJugador = {}; 
+            let nRondas = bracket.length;
+            if (nRondas === 0) return;
+
+            // Función auxiliar para registrar puntos a ambos jugadores de una pareja
+            const registrarPuntosPareja = (parejaNombre, puntos) => {
+                if (!parejaNombre || parejaNombre === "BYE" || parejaNombre === "???") return;
+                let jugadores = parejaNombre.split(" / "); // Separamos la pareja
+                jugadores.forEach(j => {
+                    let nombre = j.trim();
+                    if(nombre) {
+                        // Guardamos siempre el mayor puntaje alcanzado (por si hay nombres repetidos o error)
+                        if(!puntosPorJugador[nombre] || puntosPorJugador[nombre] < puntos) {
+                            puntosPorJugador[nombre] = puntos;
+                        }
+                    }
+                });
+            };
+
+            // 1. PUNTOS DE LA FINAL (Campeón = 80, Subcampeón = 50)
+            let rondaFinal = bracket[nRondas - 1];
+            if (rondaFinal && rondaFinal.partidos[0]) {
+                let pFinal = rondaFinal.partidos[0];
+                let campeon = pFinal.ganador;
+                let subcampeon = (pFinal.equipo1 === campeon) ? pFinal.equipo2 : pFinal.equipo1;
+                
+                registrarPuntosPareja(campeon, 80);
+                registrarPuntosPareja(subcampeon, 50);
+            }
+
+            // 2. PUNTOS DE SEMIFINALES (Perdedores de semis = 30)
+            if (nRondas >= 2) {
+                let rondaSemis = bracket[nRondas - 2];
+                rondaSemis.partidos.forEach(p => {
+                    let perdedor = (p.ganador === p.equipo1) ? p.equipo2 : p.equipo1;
+                    registrarPuntosPareja(perdedor, 30);
+                });
+            }
+
+            // 3. PUNTOS DE CUARTOS DE FINAL (Perdedores de cuartos = 20)
+            if (nRondas >= 3) {
+                let rondaCuartos = bracket[nRondas - 3];
+                rondaCuartos.partidos.forEach(p => {
+                    let perdedor = (p.ganador === p.equipo1) ? p.equipo2 : p.equipo1;
+                    registrarPuntosPareja(perdedor, 20);
+                });
+            }
+
+            // 4. ACTUALIZAR FIREBASE Y EL RANKING GLOBAL
+            try {
+                for (let nombre in puntosPorJugador) {
+                    let puntosASumar = puntosPorJugador[nombre];
+                    // Buscamos si el jugador ya existe en nuestro ranking local
+                    let p = rankingGlobal.find(r => r.nombre === nombre);
+                    
+                    if (p) {
+                        // Si existe, le sumamos los puntos
+                        await updateDoc(doc(db, "ranking", p.id), {
+                            puntos: Math.max(0, (p.puntos || 0) + puntosASumar),
+                            partidosJugados: (p.partidosJugados || 0) + 1 // Contamos el torneo como +1 partición
+                        });
+                    } else {
+                        // Si no estaba en el ranking, lo creamos
+                        await addDoc(collection(db, "ranking"), {
+                            nombre: nombre,
+                            puntos: puntosASumar,
+                            partidosJugados: 1,
+                            partidosGanados: 0,
+                            partidosPerdidos: 0,
+                            setsJugados: 0,
+                            setsGanados: 0,
+                            setsPerdidos: 0
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Error asignando puntos del torneo:", error);
+            }
+        };
+        
         function renderizarBracket(t) {
             const cont = document.getElementById('contenedor-bracket'); cont.innerHTML = ''; if(!t.bracket) { cont.innerHTML = '<div style="color: #9ca3af; padding: 20px;">Aún no se han generado los cruces.</div>'; return; }
             const nombresRondas = ["Dieciseisavos", "Octavos", "Cuartos", "Semis", "Final", "Campeón"]; let diff = nombresRondas.length - 1 - t.bracket.length; let labels = t.bracket.map((r, i) => nombresRondas[diff + i] || `Ronda ${i+1}`);
