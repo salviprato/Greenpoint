@@ -2818,36 +2818,48 @@ window.cerrarModalUnirseDetalle = function() {
 };
 
 window.invitarAmigoPendiente = async function(matchId, miEquipo, selectId) {
-    const selectEl = document.getElementById(selectId);
-    const amigoElegido = selectEl?.value;
-    if(!amigoElegido) { alert('Selecciona un amigo de la lista.'); return; }
-    
-    const m = matchmakingGlobal.find(x => x.id === matchId);
-    if(!m) return;
+            const selectEl = document.getElementById(selectId);
+            const amigoElegido = selectEl?.value;
+            if(!amigoElegido) { alert('Selecciona un amigo de la lista.'); return; }
+            
+            const m = matchmakingGlobal.find(x => x.id === matchId);
+            if(!m) return;
 
-    let nuevosDatos = { ...m };
-    if (miEquipo === 1) {
-        if (nuevosDatos.j1 === 'Libre') nuevosDatos.j1 = amigoElegido;
-        else nuevosDatos.j2 = amigoElegido;
-    } else {
-        if (nuevosDatos.j3 === 'Libre') nuevosDatos.j3 = amigoElegido;
-        else nuevosDatos.j4 = amigoElegido;
-    }
-    
-    nuevosDatos.estado = 'Esperando Confirmacion Amigo Unirse'; 
-    
-    try {
-        const docRef = doc(db, "matchmaking", matchId);
-        await updateDoc(docRef, {
-            j1: nuevosDatos.j1, j2: nuevosDatos.j2, j3: nuevosDatos.j3, j4: nuevosDatos.j4,
-            estado: nuevosDatos.estado
-        });
-        alert('¡Invitación enviada! Tu compañero debe aceptarla desde su panel.');
-    } catch(e) {
-        console.error(e);
-        alert('Error al enviar la invitación.');
-    }
-};
+            const qAmigo = query(collection(db, "usuarios"), where("nombreCompleto", "==", amigoElegido), limit(1));
+            const snapAmigo = await getDocs(qAmigo);
+            let amigoGenero = snapAmigo.empty ? 'Otro' : snapAmigo.docs[0].data().genero;
+            let miGenero = window.perfilJugador?.genero;
+            let modalidad = m.modalidad || 'Libre';
+
+            if (modalidad === 'Masculino' && amigoGenero !== 'Masculino') { alert("Modalidad Masculina. Tu invitado debe ser hombre."); return; }
+            if (modalidad === 'Femenino' && amigoGenero !== 'Femenino') { alert("Modalidad Femenina. Tu invitada debe ser mujer."); return; }
+            if (modalidad === 'Mixto' && amigoGenero === miGenero) { alert("Modalidad Mixta: Tu invitado/a debe ser de distinto género al tuyo."); return; }
+
+            let nuevosDatos = { ...m };
+            if (miEquipo === 1) {
+                if (nuevosDatos.j1 === 'Libre') { nuevosDatos.j1 = amigoElegido; nuevosDatos.j1Genero = amigoGenero; }
+                else { nuevosDatos.j2 = amigoElegido; nuevosDatos.j2Genero = amigoGenero; }
+            } else {
+                if (nuevosDatos.j3 === 'Libre') { nuevosDatos.j3 = amigoElegido; nuevosDatos.j3Genero = amigoGenero; }
+                else { nuevosDatos.j4 = amigoElegido; nuevosDatos.j4Genero = amigoGenero; }
+            }
+            
+            nuevosDatos.estado = 'Esperando Confirmacion Amigo Unirse'; 
+            
+            try {
+                const docRef = doc(db, "matchmaking", matchId);
+                await updateDoc(docRef, {
+                    j1: nuevosDatos.j1, j2: nuevosDatos.j2, j3: nuevosDatos.j3, j4: nuevosDatos.j4,
+                    j1Genero: nuevosDatos.j1Genero, j2Genero: nuevosDatos.j2Genero, j3Genero: nuevosDatos.j3Genero, j4Genero: nuevosDatos.j4Genero,
+                    estado: nuevosDatos.estado
+                });
+                alert('¡Invitación enviada! Tu compañero debe aceptarla desde su panel de Notificaciones.');
+            } catch(e) {
+                console.error(e);
+                alert('Error al enviar la invitación.');
+            }
+        };
+        
         // --- MENÚ LATERAL Y MI PERFIL ---
         window.abrirMenuLateral = function() {
             const menu = document.getElementById('modal-menu-lateral');
