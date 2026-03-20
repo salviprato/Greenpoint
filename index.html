@@ -2618,12 +2618,7 @@ window.cerrarModalUnirseDetalle = function() {
 
             rankingCalculado.forEach((j, i) => { 
                 let winRateStr = j.partidosJugados > 0 ? `${(j.promPartidos * 100).toFixed(0)}% WR` : '0%';
-                tb.innerHTML += `<tr style="cursor: pointer; border-bottom: 1px solid #2c3540;" onclick="window.abrirDetalleRanking('${j.id}')" onmouseover="this.style.backgroundColor='#2c3540'" onmouseout="this.style.backgroundColor='transparent'">
-                    <td style="text-align: center;"><strong>${i+1}</strong></td>
-                    <td style="padding: 8px 0;">${j.nombre || 'Anónimo'}<br><small style="color:#9ca3af;">${winRateStr}</small></td>
-                    <td style="text-align: center; color: #f59e0b; font-size: 1.1em;"><strong>${j.puntos || 0}</strong></td>
-                    <td style="text-align: center;">${j.partidosJugados || 0}</td>
-                </tr>`; 
+                tb.innerHTML += `<tr style="cursor: pointer; border-bottom: 1px solid #2c3540;" onclick="window.abrirDetalleRanking('${j.id}')" onmouseover="this.style.backgroundColor='#2c3540'" onmouseout="this.style.backgroundColor='transparent'"><td style="text-align: center;"><strong>${i+1}</strong></td><td style="padding: 8px 0;">${j.nombre || 'Anónimo'}<br><small style="color:#9ca3af;">${winRateStr}</small></td><td style="text-align: center; color: #f59e0b; font-size: 1.1em;"><strong>${j.puntos || 0}</strong></td><td style="text-align: center;">${j.partidosJugados || 0}</td></tr>`; 
             });
         };
         
