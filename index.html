@@ -1994,6 +1994,25 @@
             });
             if (torneosMostrados === 0) div.innerHTML = '<div style="padding: 20px; color: #9ca3af;">Por el momento no hay torneos disponibles.</div>';
         };
+
+        window.darseDeBajaTorneo = async function(idTorneo, inscripcionStr) {
+            if(!confirm("¿Seguro que deseas darte de baja de este torneo?")) return;
+            const t = torneosAdminGlobal.find(x => x.id === idTorneo);
+            if(!t) return;
+            
+            if(t.faseGrupos) { 
+                alert("No puedes darte de baja porque el torneo ya comenzó y se crearon las zonas."); 
+                return; 
+            }
+            
+            let nuevosInscriptos = t.inscriptos.filter(insc => insc !== inscripcionStr);
+            try {
+                await updateDoc(doc(db, "torneos_admin", idTorneo), { inscriptos: nuevosInscriptos });
+                alert("Te has dado de baja del torneo exitosamente.");
+            } catch(e) {
+                alert("Hubo un error al procesar tu baja.");
+            }
+        };
         
         window.abrirModalTorneosPublicos = function() { document.getElementById('modal-torneos-publicos').style.display = 'flex'; };
         window.cerrarModalTorneosPublicos = function() { document.getElementById('modal-torneos-publicos').style.display = 'none'; };
