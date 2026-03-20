@@ -1964,22 +1964,36 @@
 };
         
         window.renderizarTorneosPublicos = function() {
-            const div = document.getElementById('lista-torneos'); if(!div) return; div.innerHTML = '';
-            if(torneosAdminGlobal.length === 0) { div.innerHTML = '<div style="padding: 20px; color: #9ca3af;">Aún no hay torneos programados.</div>'; return; }
-            let torneosMostrados = 0; let hoy = obtenerFechaHoy(); let miNombre = window.perfilJugador?.nombreCompleto || '';
+            const div = document.getElementById('lista-torneos'); if(!div) return; div.innerHTML = '';
+            if(torneosAdminGlobal.length === 0) { div.innerHTML = '<div style="padding: 20px; color: #9ca3af;">Aún no hay torneos programados.</div>'; return; }
+            let torneosMostrados = 0; let hoy = obtenerFechaHoy(); let miNombre = window.perfilJugador?.nombreCompleto || '';
 
-            torneosAdminGlobal.sort((a,b) => a.fecha > b.fecha ? 1 : -1).forEach(t => { 
-                if (t.fecha < hoy) return; 
-                let inscriptos = t.inscriptos || []; let cuposDisponibles = t.cupo - inscriptos.length;
-                let estoyInscripto = inscriptos.some(insc => insc.includes(miNombre));
-                if (!estoyInscripto && (cuposDisponibles <= 0 || t.faseGrupos)) return;
-                torneosMostrados++;
-                let [y, m, d] = t.fecha.split('-'); let fechaLegible = `${d}/${m}/${y}`;
-                let accionHtml = estoyInscripto ? `<span style="color: #3b82f6; font-weight: bold; font-size: 0.9em; padding: 8px;">✅ Inscripto</span>` : `<button class="btn-modal btn-guardar" style="width: auto; padding: 8px 15px; font-size: 0.85em; background-color: #10b981;" onclick="window.abrirModalInscripcionTorneo('${t.id}')">Inscribirse</button>`;
-                div.innerHTML += `<div style="background: #1e252d; border: 1px solid #44505d; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; text-align: left;"><div><div style="color: #f59e0b; font-weight: bold; font-size: 1.1em;">🏆 ${t.nombre}</div><div style="color: #d1d5db; font-size: 0.85em; margin-top: 4px;">📅 ${fechaLegible} | ⌚ ${t.horaInicio} hs</div><div style="color: #10b981; font-size: 0.8em; margin-top: 2px;">Cupos Libres: ${cuposDisponibles}</div></div><div>${accionHtml}</div></div>`; 
-            });
-            if (torneosMostrados === 0) div.innerHTML = '<div style="padding: 20px; color: #9ca3af;">Por el momento no hay torneos disponibles.</div>';
-        };
+            torneosAdminGlobal.sort((a,b) => a.fecha > b.fecha ? 1 : -1).forEach(t => { 
+                if (t.fecha < hoy) return; 
+                let inscriptos = t.inscriptos || []; let cuposDisponibles = t.cupo - inscriptos.length;
+                let estoyInscripto = inscriptos.some(insc => insc.includes(miNombre));
+                if (!estoyInscripto && (cuposDisponibles <= 0 || t.faseGrupos)) return;
+                torneosMostrados++;
+                let [y, m, d] = t.fecha.split('-'); let fechaLegible = `${d}/${m}/${y}`;
+                
+                let accionHtml = '';
+                if (estoyInscripto) {
+                    let miInsc = inscriptos.find(insc => insc.includes(miNombre));
+                    let partes = miInsc.split('/');
+                    let comp = partes[0].trim() === miNombre ? partes[1]?.trim() : partes[0]?.trim();
+                    let conQuien = comp ? `con ${comp}` : 'Solo';
+                    accionHtml = `<div style="text-align: right;">
+                                    <span style="color: #3b82f6; font-weight: bold; font-size: 0.85em; display:block; margin-bottom: 5px;">✅ Inscripto (${conQuien})</span>
+                                    <button class="btn-modal btn-eliminar" style="width: auto; padding: 5px 10px; font-size: 0.75em;" onclick="window.darseDeBajaTorneo('${t.id}', '${miInsc}')">Dar de baja</button>
+                                  </div>`;
+                } else {
+                    accionHtml = `<button class="btn-modal btn-guardar" style="width: auto; padding: 8px 15px; font-size: 0.85em; background-color: #10b981;" onclick="window.abrirModalInscripcionTorneo('${t.id}')">Inscribirse</button>`;
+                }
+
+                div.innerHTML += `<div style="background: #1e252d; border: 1px solid #44505d; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; text-align: left;"><div><div style="color: #f59e0b; font-weight: bold; font-size: 1.1em;">🏆 ${t.nombre}</div><div style="color: #d1d5db; font-size: 0.85em; margin-top: 4px;">📅 ${fechaLegible} | ⌚ ${t.horaInicio} hs</div><div style="color: #10b981; font-size: 0.8em; margin-top: 2px;">Cupos Libres: ${cuposDisponibles}</div></div><div>${accionHtml}</div></div>`; 
+            });
+            if (torneosMostrados === 0) div.innerHTML = '<div style="padding: 20px; color: #9ca3af;">Por el momento no hay torneos disponibles.</div>';
+        };
         
         window.abrirModalTorneosPublicos = function() { document.getElementById('modal-torneos-publicos').style.display = 'flex'; };
         window.cerrarModalTorneosPublicos = function() { document.getElementById('modal-torneos-publicos').style.display = 'none'; };
