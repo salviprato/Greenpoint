@@ -2509,55 +2509,59 @@ window.cerrarModalUnirseDetalle = function() {
             }
         };
 
-        async function procesarPuntosRanking(m, g, setsObj) {
-            const getPts = (nombre) => {
-                if(!nombre || nombre.includes('(Ext)') || nombre === 'Libre' || nombre === '???') return 0;
-                const p = rankingGlobal.find(r => r.nombre === nombre); return p ? (p.puntos || 0) : 0;
-            };
+       async function procesarPuntosRanking(m, g, setsObj) {
+            let modalidadPartido = m.modalidad || 'Masculino';
 
-            let ptsJ1 = getPts(m.j1); let ptsJ2 = getPts(m.j2); let ptsJ3 = getPts(m.j3); let ptsJ4 = getPts(m.j4);
-            let sumEq1 = 0; if (m.j1.includes('(Ext)')) sumEq1 = ptsJ2 * 2; else if (m.j2.includes('(Ext)')) sumEq1 = ptsJ1 * 2; else sumEq1 = ptsJ1 + ptsJ2;
-            let sumEq2 = 0; if (m.j3.includes('(Ext)')) sumEq2 = ptsJ4 * 2; else if (m.j4.includes('(Ext)')) sumEq2 = ptsJ3 * 2; else sumEq2 = ptsJ3 + ptsJ4;
+            const getPts = (nombre) => {
+                if(!nombre || nombre.includes('(Ext)') || nombre === 'Libre' || nombre === '???') return 0;
+                const p = rankingGlobal.find(r => r.nombre === nombre && (r.modalidad || 'Masculino') === modalidadPartido); return p ? (p.puntos || 0) : 0;
+            };
 
-            let diferencia = Math.abs(sumEq1 - sumEq2); let multiplicador = Math.floor(diferencia / 10);
-            let ptsGanador = 15; let ptsPerdedor = -5; let eq1Gana = (g === 1);
-            
-            if (eq1Gana && sumEq2 > sumEq1) { ptsGanador += multiplicador; ptsPerdedor -= multiplicador; }
-            if (!eq1Gana && sumEq1 > sumEq2) { ptsGanador += multiplicador; ptsPerdedor -= multiplicador; }
+            let ptsJ1 = getPts(m.j1); let ptsJ2 = getPts(m.j2); let ptsJ3 = getPts(m.j3); let ptsJ4 = getPts(m.j4);
+            let sumEq1 = 0; if (m.j1.includes('(Ext)')) sumEq1 = ptsJ2 * 2; else if (m.j2.includes('(Ext)')) sumEq1 = ptsJ1 * 2; else sumEq1 = ptsJ1 + ptsJ2;
+            let sumEq2 = 0; if (m.j3.includes('(Ext)')) sumEq2 = ptsJ4 * 2; else if (m.j4.includes('(Ext)')) sumEq2 = ptsJ3 * 2; else sumEq2 = ptsJ3 + ptsJ4;
 
-            let cambioJ1 = eq1Gana ? ptsGanador : ptsPerdedor; let cambioJ2 = eq1Gana ? ptsGanador : ptsPerdedor;
-            let cambioJ3 = !eq1Gana ? ptsGanador : ptsPerdedor; let cambioJ4 = !eq1Gana ? ptsGanador : ptsPerdedor;
+            let diferencia = Math.abs(sumEq1 - sumEq2); let multiplicador = Math.floor(diferencia / 10);
+            let ptsGanador = 15; let ptsPerdedor = -5; let eq1Gana = (g === 1);
+            
+            if (eq1Gana && sumEq2 > sumEq1) { ptsGanador += multiplicador; ptsPerdedor -= multiplicador; }
+            if (!eq1Gana && sumEq1 > sumEq2) { ptsGanador += multiplicador; ptsPerdedor -= multiplicador; }
 
-            const actualizarJugador = async (nombre, cambioPts, isEq1) => {
-                if(!nombre || nombre === 'Libre' || nombre.includes('(Ext)')) return;
-                const p = rankingGlobal.find(r => r.nombre === nombre);
-                let wonMatch = (isEq1 && eq1Gana) || (!isEq1 && !eq1Gana);
-                let setsWon = isEq1 ? setsObj.s_eq1 : setsObj.s_eq2;
-                let setsLost = isEq1 ? setsObj.s_eq2 : setsObj.s_eq1;
+            let cambioJ1 = eq1Gana ? ptsGanador : ptsPerdedor; let cambioJ2 = eq1Gana ? ptsGanador : ptsPerdedor;
+            let cambioJ3 = !eq1Gana ? ptsGanador : ptsPerdedor; let cambioJ4 = !eq1Gana ? ptsGanador : ptsPerdedor;
 
-                let dData = {
-                    puntos: Math.max(0, (p ? p.puntos : 0) + cambioPts),
-                    partidosJugados: (p ? (p.partidosJugados || 0) : 0) + 1,
-                    partidosGanados: (p ? (p.partidosGanados || 0) : 0) + (wonMatch ? 1 : 0),
-                    partidosPerdidos: (p ? (p.partidosPerdidos || 0) : 0) + (wonMatch ? 0 : 1),
-                    setsJugados: (p ? (p.setsJugados || 0) : 0) + setsWon + setsLost,
-                    setsGanados: (p ? (p.setsGanados || 0) : 0) + setsWon,
-                    setsPerdidos: (p ? (p.setsPerdidos || 0) : 0) + setsLost
-                };
+            const actualizarJugador = async (nombre, cambioPts, isEq1) => {
+                if(!nombre || nombre === 'Libre' || nombre.includes('(Ext)')) return;
+                // Buscamos si ya tiene puntos en esta modalidad específica
+                const p = rankingGlobal.find(r => r.nombre === nombre && (r.modalidad || 'Masculino') === modalidadPartido);
+                let wonMatch = (isEq1 && eq1Gana) || (!isEq1 && !eq1Gana);
+                let setsWon = isEq1 ? setsObj.s_eq1 : setsObj.s_eq2;
+                let setsLost = isEq1 ? setsObj.s_eq2 : setsObj.s_eq1;
 
-                if (p) { await updateDoc(doc(db, "ranking", p.id), dData); } 
-                else { dData.nombre = nombre; await addDoc(collection(db, "ranking"), dData); }
-            };
+                let dData = {
+                    puntos: Math.max(0, (p ? p.puntos : 0) + cambioPts),
+                    partidosJugados: (p ? (p.partidosJugados || 0) : 0) + 1,
+                    partidosGanados: (p ? (p.partidosGanados || 0) : 0) + (wonMatch ? 1 : 0),
+                    partidosPerdidos: (p ? (p.partidosPerdidos || 0) : 0) + (wonMatch ? 0 : 1),
+                    setsJugados: (p ? (p.setsJugados || 0) : 0) + setsWon + setsLost,
+                    setsGanados: (p ? (p.setsGanados || 0) : 0) + setsWon,
+                    setsPerdidos: (p ? (p.setsPerdidos || 0) : 0) + setsLost,
+                    modalidad: modalidadPartido // Guardamos a qué modalidad pertenece
+                };
 
-            try {
-                await Promise.all([ 
-                    actualizarJugador(m.j1, cambioJ1, true), actualizarJugador(m.j2, cambioJ2, true), 
-                    actualizarJugador(m.j3, cambioJ3, false), actualizarJugador(m.j4, cambioJ4, false) 
-                ]);
-                await updateDoc(doc(db, "matchmaking", m.id), { estado: 'Finalizado', ganador: g, resultadoSets: setsObj.str }); 
-                window.cerrarModalResultado(); alert("¡Resultados confirmados y estadísticas actualizadas!");
-            } catch(e) { console.error(e); alert("Error al subir puntos."); window.cerrarModalResultado(); }
-        }
+                if (p) { await updateDoc(doc(db, "ranking", p.id), dData); } 
+                else { dData.nombre = nombre; await addDoc(collection(db, "ranking"), dData); }
+            };
+
+            try {
+                await Promise.all([ 
+                    actualizarJugador(m.j1, cambioJ1, true), actualizarJugador(m.j2, cambioJ2, true), 
+                    actualizarJugador(m.j3, cambioJ3, false), actualizarJugador(m.j4, cambioJ4, false) 
+                ]);
+                await updateDoc(doc(db, "matchmaking", m.id), { estado: 'Finalizado', ganador: g, resultadoSets: setsObj.str }); 
+                window.cerrarModalResultado(); alert("¡Resultados confirmados y estadísticas actualizadas!");
+            } catch(e) { console.error(e); alert("Error al subir puntos."); window.cerrarModalResultado(); }
+        }
         
         window.renderizarHistorialCompetitivo = function() { 
             const div = document.getElementById('lista-partidos-historial'); if(!div) return; div.innerHTML = '';
