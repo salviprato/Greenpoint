@@ -1946,6 +1946,16 @@
             }
         };
 
+        window.categoriaRankingSeleccionada = 'Masculino';
+        
+        window.cambiarCategoriaRanking = function(cat) {
+            window.categoriaRankingSeleccionada = cat;
+            document.getElementById('btn-rank-masculino').classList.toggle('activo', cat === 'Masculino');
+            document.getElementById('btn-rank-femenino').classList.toggle('activo', cat === 'Femenino');
+            document.getElementById('btn-rank-mixto').classList.toggle('activo', cat === 'Mixto');
+            window.renderizarRanking();
+        };
+
         window.cargarClubesDisponibles = async function() {
     const sel = document.getElementById('comp-club');
     sel.innerHTML = '<option value="" disabled selected>Cargando clubes...</option>';
