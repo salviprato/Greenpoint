@@ -2252,29 +2252,22 @@ window.eliminarReservaMatchmaking = async function(matchId) {
         
         // --- MODAL UNIRSE A PARTIDO ---
 window.abrirModalUnirseDetalle = function(id) {
-    const m = matchmakingGlobal.find(x => x.id === id); 
-    if(!m) return;
-    
-    // 1. Asignar el ID al input oculto
-    document.getElementById('unirse-partido-id').value = id;
-    
-    // 2. Llenar la información visual del partido
-    document.getElementById('lbl-unirse-info').innerHTML = `
-        <strong>📍 ${m.clubSeleccionado}</strong> - Cancha ${m.tipoCancha}<br>
-        📅 ${m.fechaDeseada} | ⌚ ${m.horaDeseada} hs
-    `;
-    
-    // 3. Setear tu nombre por defecto
-    document.getElementById('unirse-nombre').value = window.perfilJugador?.nombreCompleto || 'Jugador Anónimo';
-    
-    // 4. Reiniciar el select de pareja y actualizar la vista de amigos
-    document.getElementById('unirse-pareja').value = 'random';
-    window.toggleAmigoInput('unirse-pareja', 'div-amigo-unirse');
-    
-    // 5. Mostrar el modal
-    document.getElementById('modal-unirse-detalle').style.display = 'flex';
-};
-
+            const m = matchmakingGlobal.find(x => x.id === id); 
+            if(!m) return;
+            
+            document.getElementById('unirse-partido-id').value = id;
+            
+            document.getElementById('lbl-unirse-info').innerHTML = `
+                <strong>📍 ${m.clubSeleccionado}</strong> - Cancha ${m.tipoCancha}<br>
+                📅 ${m.fechaDeseada} | ⌚ ${m.horaDeseada} hs
+            `;
+            
+            document.getElementById('unirse-pareja').value = 'random';
+            window.toggleAmigoInput('unirse-pareja', 'div-amigo-unirse');
+            
+            document.getElementById('modal-unirse-detalle').style.display = 'flex';
+        };
+        
 window.cerrarModalUnirseDetalle = function() {
     document.getElementById('modal-unirse-detalle').style.display = 'none';
 };
