@@ -1934,11 +1934,31 @@
         };
         
         window.cambiarSubVistaAccion = function(accion) {
-            document.getElementById('contenedor-crear').style.display = accion === 'crear' ? 'block' : 'none';
-            document.getElementById('contenedor-unirse').style.display = accion === 'unirse' ? 'block' : 'none';
-            document.getElementById('btn-comp-crear').classList.toggle('activo', accion === 'crear');
-            document.getElementById('btn-comp-unirse').classList.toggle('activo', accion === 'unirse');
-        };
+            document.getElementById('contenedor-crear').style.display = accion === 'crear' ? 'block' : 'none';
+            document.getElementById('contenedor-unirse').style.display = accion === 'unirse' ? 'block' : 'none';
+            document.getElementById('btn-comp-crear').classList.toggle('activo', accion === 'crear');
+            document.getElementById('btn-comp-unirse').classList.toggle('activo', accion === 'unirse');
+
+            // --- NUEVA LÓGICA: Filtrar opciones de modalidad según género ---
+            if (accion === 'crear') {
+                const selectModalidad = document.getElementById('comp-modalidad');
+                const miGenero = window.perfilJugador?.genero;
+                
+                selectModalidad.innerHTML = ''; // Limpiamos las opciones actuales
+                
+                // Agregamos las opciones permitidas según el género
+                if (miGenero === 'Masculino') {
+                    selectModalidad.innerHTML += '<option value="Masculino">Masculino</option>';
+                    selectModalidad.innerHTML += '<option value="Mixto">Mixto</option>';
+                } else if (miGenero === 'Femenino') {
+                    selectModalidad.innerHTML += '<option value="Femenino">Femenino</option>';
+                    selectModalidad.innerHTML += '<option value="Mixto">Mixto</option>';
+                } else {
+                    // Por seguridad, si no tiene género (perfil incompleto)
+                    selectModalidad.innerHTML += '<option value="" disabled selected>Falta configurar género</option>';
+                }
+            }
+        };
 
         window.categoriaRankingSeleccionada = 'Masculino';
         
